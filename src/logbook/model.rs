@@ -1,0 +1,24 @@
+
+use chrono::NaiveDateTime;
+use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+
+// #[derive(Serialize, Deserialize, Debug, Clone, Queryable, Selectable,ToSchema)]
+#[derive(Serialize, Insertable, Debug, Selectable, Queryable)]
+#[diesel(table_name = crate::schema::loginfo)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct LogInfo {
+    id: i32,
+    title: String,
+    depth: f32,
+    start_pressure: i32,
+    end_pressure: i32,
+    description: Option<String>,
+    vawe_power: Option<f32>,
+    side_view: Option<f32>,
+    water_temperature: Option<f32>,
+    start_datetime: NaiveDateTime,
+    end_datetime: NaiveDateTime,
+}

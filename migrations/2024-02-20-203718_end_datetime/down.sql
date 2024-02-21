@@ -1,0 +1,2 @@
+ALTER TABLE loginfo
+ALTER COLUMN end_datetime DROP NOT NULL;
