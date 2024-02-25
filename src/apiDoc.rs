@@ -12,6 +12,7 @@ pub mod apiDoc {
     #[openapi(
         paths(
             logbook::router::router::get_logbook_list,
+            logbook::router::router::get_logbook_by_id,
         ),
         components(
             schemas(logbook::model::LogInfo)
