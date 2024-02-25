@@ -4,62 +4,48 @@ pub mod router {
     use serde_json::Value;
     use serde_json::{json};
     use axum::{
-        extract::{Path, State},
+        extract::{State},
         Router,
         response::IntoResponse
     };
 
-    use utoipa::{ToSchema};
+    use axum::extract::Query;
+
     use crate::logbook::model;
-    use crate::logbook::service::service::LogInfoTable as log_info_table;
+    use crate::logbook::service::service::{GetLogbookListParams, LogInfoTable as log_info_table};
 
     use crate::common::db::ConnectionPool;
-    use serde::{Deserialize, Serialize};
     use tokio::sync::Mutex;
     use http::{StatusCode};
 
      pub fn logbook_routes(shared_connection_pool: ConnectionPool) -> Router {
         Router::new()
-        .route("/todo/:id", axum::routing::post(get_logbook_list))
+        .route("/log_info", axum::routing::get(get_logbook_list))
         .with_state(shared_connection_pool)
-    }
-
-    #[derive(Serialize, Deserialize, ToSchema)]
-    pub enum TodoError {
-        /// Todo already exists conflict.
-        #[schema(example = "Todo already exists")]
-        Conflict(String),
-        /// Todo not found by id.
-        #[schema(example = "id = 1")]
-        NotFound(String),
-        /// Todo operation unauthorized
-        #[schema(example = "missing api key")]
-        Unauthorized(String),
     }
 
     pub(super) type Store = Mutex<Vec<model::LogInfo>>;
     #[utoipa::path(
-        post,
-        path = "/todo/{id}",
+        get,
+        path = "/log_info",
         params(
-            ("id" = i32, Path, description = "Todo database id"),
+            ("offset" = Option<i64>, Query, description = "page"),
+            ("limit" = Option<i64>, Query, description = "Page Size"),
         ),
-        request_body = model::LogInfo,
         responses(
             (status = 200, description = "List all todos successfully", body = [model::LogInfo])
         )
     )]
     pub async fn get_logbook_list(
-        // State(store): State<Arc<Store>>,
-        Path(id): Path<i32>,
         State(shared_state): State<ConnectionPool>,
-        Json(todo): Json<Value>,
+        Query(params): Query<GetLogbookListParams>,
         
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+
         let connection = shared_state.pool.get()
         .expect("Failed connection to POOL");
 
-       match log_info_table::new(connection).get_logbook_list() {
+       match log_info_table::new(connection).get_logbook_list(params) {
         Ok(log_info) => {
             Ok((StatusCode::OK, Json(json!({"data": &log_info}))))
         },
@@ -70,7 +56,7 @@ pub mod router {
        }
     }
 
-  pub fn my_test_function() {
-
-    }
+    // async fn get_logbook_list(Extension(params): Extension<LogInfoParams>) -> String {
+    //     format!("Page size: {}, Page: {}", params.page_size, params.page)
+    // }
 }

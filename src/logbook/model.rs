@@ -6,7 +6,7 @@ use utoipa::ToSchema;
 
 
 // #[derive(Serialize, Deserialize, Debug, Clone, Queryable, Selectable,ToSchema)]
-#[derive(Serialize, Insertable, Debug, Selectable, Queryable)]
+#[derive(Serialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::loginfo)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LogInfo {
