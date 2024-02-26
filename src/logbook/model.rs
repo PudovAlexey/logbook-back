@@ -21,4 +21,5 @@ pub struct LogInfo {
     water_temperature: Option<f32>,
     start_datetime: NaiveDateTime,
     end_datetime: NaiveDateTime,
+    user_id: i32,
 }

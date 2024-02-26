@@ -30,13 +30,15 @@ diesel::table! {
         patronymic -> Nullable<Varchar>,
         #[max_length = 10]
         role -> Varchar,
-        created_at -> Nullable<Timestamp>,
-        updated_at -> Nullable<Timestamp>,
-        date_of_birth -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        date_of_birth -> Timestamp,
         #[max_length = 100]
         password -> Varchar,
     }
 }
+
+diesel::joinable!(loginfo -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     loginfo,
