@@ -2,6 +2,7 @@ pub mod common;
 pub mod logbook;
 pub mod schema;
 pub mod apiDoc;
+pub mod users;
 
 use apiDoc::apiDoc::ApiDoc;
 

@@ -13,5 +13,32 @@ diesel::table! {
         start_pressure -> Int4,
         end_pressure -> Int4,
         description -> Nullable<Varchar>,
+        user_id -> Int4,
     }
 }
+
+diesel::table! {
+    users (id) {
+        id -> Int4,
+        #[max_length = 100]
+        email -> Varchar,
+        #[max_length = 50]
+        name -> Varchar,
+        #[max_length = 50]
+        surname -> Nullable<Varchar>,
+        #[max_length = 50]
+        patronymic -> Nullable<Varchar>,
+        #[max_length = 10]
+        role -> Varchar,
+        created_at -> Nullable<Timestamp>,
+        updated_at -> Nullable<Timestamp>,
+        date_of_birth -> Nullable<Timestamp>,
+        #[max_length = 100]
+        password -> Varchar,
+    }
+}
+
+diesel::allow_tables_to_appear_in_same_query!(
+    loginfo,
+    users,
+);
