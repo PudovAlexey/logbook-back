@@ -1,4 +1,5 @@
 pub mod service {
+    use crate::common::formatters::date;
     use diesel::{
         prelude::*,
         r2d2::{ConnectionManager, PooledConnection},
@@ -19,6 +20,7 @@ pub mod service {
     pub struct GetLogbookListParams {
         pub limit: Option<i64>,
         pub offset: Option<i64>,
+        pub search_query: Option<String>
     }
 
     pub struct GetLogbookByIdParams {
@@ -36,8 +38,13 @@ pub mod service {
         ) -> Result<Vec<model::LogInfo>, diesel::result::Error> {
             let limit = params.limit.unwrap_or(-1);
             let offset = params.offset.unwrap_or(-1);
+            let search_query = params.search_query.unwrap_or(String::from(""));
 
             let mut query = loginfo.into_boxed();
+
+            let test = date::date::make_timestamp_from_string("31.12.2023");
+
+            println!("timestamp {:?}", test);
 
             if limit >= 0 {
                 query = query.limit(limit);
@@ -45,6 +52,13 @@ pub mod service {
 
             if limit >= 0 {
                 query = query.offset(offset);
+            }
+
+            if search_query.len() > 0 {
+                query = query.filter(
+                    title.ilike(format!("%{}%", search_query))
+                    .or(description.ilike(format!("%{}%", search_query)))
+            )
             }
 
             Ok(query

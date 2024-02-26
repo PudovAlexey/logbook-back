@@ -12,10 +12,10 @@ use utoipa::ToSchema;
 pub struct LogInfo {
     id: i32,
     title: String,
+    description: Option<String>,
     depth: f32,
     start_pressure: i32,
     end_pressure: i32,
-    description: Option<String>,
     vawe_power: Option<f32>,
     side_view: Option<f32>,
     water_temperature: Option<f32>,

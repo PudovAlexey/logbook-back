@@ -30,6 +30,7 @@ pub mod router {
         params(
             ("offset" = Option<i64>, Query, description = "page"),
             ("limit" = Option<i64>, Query, description = "Page Size"),
+            ("search_query" = Option<String>, Query, description = "seach value")
         ),
         responses(
             (status = 200, description = "List all todos successfully", body = [model::LogInfo])
