@@ -6,6 +6,7 @@ pub mod users;
 
 use apiDoc::apiDoc::ApiDoc;
 
+use schema::loginfo::user_id;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use utoipa_redoc::{Redoc, Servable};
@@ -38,7 +39,8 @@ async fn main() -> Result<(), std::io::Error> {
     let app = Router::new()
     .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
-    .merge(logbook_routes::router::logbook_routes(shared_connection_pool));
+    .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
+    .merge(users::router::router::user_routes(shared_connection_pool.clone()));
 
     axum::serve(listener, app.into_make_service()).await
 }

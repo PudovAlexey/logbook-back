@@ -1,18 +1,19 @@
 pub mod apiDoc {
     use utoipa::{
-        openapi, 
         OpenApi, 
         Modify,
         openapi::security::{SecurityScheme, ApiKey, ApiKeyValue}
     };
 
     use crate::logbook;
+    use crate::users;
 
     #[derive(OpenApi)]
     #[openapi(
         paths(
             logbook::router::router::get_logbook_list,
             logbook::router::router::get_logbook_by_id,
+            users::router::router::login_user_handler
         ),
         components(
             schemas(logbook::model::LogInfo)

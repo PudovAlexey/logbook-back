@@ -8,6 +8,7 @@ pub mod service {
     use serde::Deserialize;
 
     use crate::logbook::model;
+    use crate::schema::loginfo::dsl::*;
 
     type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
 
@@ -15,7 +16,6 @@ pub mod service {
         connection: PooledPg,
     }
 
-    use crate::schema::loginfo::dsl::*;
     #[derive(Deserialize, Debug)]
     pub struct GetLogbookListParams {
         pub limit: Option<i64>,
