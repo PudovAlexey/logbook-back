@@ -20,6 +20,8 @@ pub mod router {
         Router::new()
             .route("/log_info", axum::routing::get(get_logbook_list))
             .route("/log_info/:id", axum::routing::get(get_logbook_by_id))
+            .route("/log_info/:id", axum::routing::put(update_loginfo_handler))
+            .route("/log_info/", axum::routing::post(create_loginfo_handler))
             .with_state(shared_connection_pool)
     }
 
@@ -81,6 +83,46 @@ pub mod router {
             },
         }
     }
+    
+    #[utoipa::path(
+        put,
+        path = "/log_info/{id}",
+        request_body = model::UpdateLogInfo,
+        params(
+            ("id" = i32, Path, description="Element id")
+        ),
+        // responses(
+        //     (status = 200, description = "Logbook updated successfully", [model:: LogInfo])
+        // )
+    )]
+    pub async fn update_loginfo_handler(
+        State(shared_state): State<ConnectionPool>,
+        Query(params): Query<GetLogbookByIdParams>,
+        Json(body): Json<model::UpdateLogInfo>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+        Ok((StatusCode::OK, Json(json!({
+            "id": params.id,
+            "body": body,
+        }))))
+    }
+
+    #[utoipa::path(
+        post,
+        path = "/log_info/",
+        request_body = model::CreateLogInfo,
+
+    )]
+    pub async fn create_loginfo_handler(
+        State(shared_state): State<ConnectionPool>,
+        Json(body): Json<model::UpdateLogInfo>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        Ok((StatusCode::OK, Json(json!({
+            "body": body,
+        }))))
+    }
+
 
     // async fn get_logbook_list(Extension(params): Extension<LogInfoParams>) -> String {
     //     format!("Page size: {}, Page: {}", params.page_size, params.page)

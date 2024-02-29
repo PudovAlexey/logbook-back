@@ -23,6 +23,7 @@ pub mod service {
         pub search_query: Option<String>
     }
 
+    #[derive(Deserialize, Debug)]
     pub struct GetLogbookByIdParams {
         pub id: i32,
     }

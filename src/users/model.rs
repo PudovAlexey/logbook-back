@@ -44,7 +44,7 @@ pub struct USER {
  pub password: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct LoginUser {
     pub email: String,
     pub password: String,

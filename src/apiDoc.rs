@@ -13,6 +13,8 @@ pub mod apiDoc {
         paths(
             logbook::router::router::get_logbook_list,
             logbook::router::router::get_logbook_by_id,
+            logbook::router::router::update_loginfo_handler,
+            logbook::router::router::create_loginfo_handler,
             users::router::router::login_user_handler
         ),
         components(
