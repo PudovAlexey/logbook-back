@@ -1,8 +1,10 @@
 pub mod service {
     use crate::common::formatters::date;
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
     use diesel::{
         prelude::*,
         r2d2::{ConnectionManager, PooledConnection},
+        result::Error,
         PgConnection,
     };
     use serde::Deserialize;
@@ -20,7 +22,7 @@ pub mod service {
     pub struct GetLogbookListParams {
         pub limit: Option<i64>,
         pub offset: Option<i64>,
-        pub search_query: Option<String>
+        pub search_query: Option<String>,
     }
 
     #[derive(Deserialize, Debug)]
@@ -57,9 +59,10 @@ pub mod service {
 
             if search_query.len() > 0 {
                 query = query.filter(
-                    title.ilike(format!("%{}%", search_query))
-                    .or(description.ilike(format!("%{}%", search_query)))
-            )
+                    title
+                        .ilike(format!("%{}%", search_query))
+                        .or(description.ilike(format!("%{}%", search_query))),
+                )
             }
 
             Ok(query
@@ -78,6 +81,50 @@ pub mod service {
                 .select(model::LogInfo::as_select())
                 .first(&mut self.connection)
                 .expect("error to loading Logbook"))
+        }
+
+        pub fn update_loginfo_by_id(&mut self, update_id: i32, query: model::UpdateLogInfo) -> Result<usize, Error> {
+            let model::UpdateLogInfo {
+                title: tit, 
+                description: descr, 
+                depth: dep,
+                start_pressure: start_pres,
+                end_pressure: end_pres,
+                vawe_power: vawe,
+                side_view: side,
+                water_temperature: water_temp,
+                start_datetime: start_date,
+                end_datetime: end_date,
+                 ..} = query;
+
+            let existing_user = self.get_loginfo_by_id(GetLogbookByIdParams {
+                id: update_id
+            });
+
+            match existing_user {
+                Ok(_) => {
+
+                    let d = NaiveDate::from_ymd_opt(2015, 6, 3).unwrap();
+                    let t = NaiveTime::from_hms_milli_opt(12, 34, 56, 789).unwrap();
+
+                    let update_loginfo = diesel::update(loginfo).set((
+                        title.eq(tit),
+                        description.eq(descr),
+                        depth.eq(dep),
+                        start_pressure.eq(start_pres),
+                        end_pressure.eq(end_pres),
+                        vawe_power.eq(vawe),
+                        side_view.eq(side),
+                        water_temperature.eq(water_temp),
+                        start_datetime.eq(NaiveDateTime::new(d, t)),
+                        end_datetime.eq(NaiveDateTime::new(d, t)),
+                    ))
+                    .execute(&mut self.connection);
+
+                    update_loginfo
+                }
+                Err(_) => Err(Error::NotFound),
+            }
         }
     }
 }

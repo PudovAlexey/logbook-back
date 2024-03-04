@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 // #[derive(Serialize, Deserialize, Debug, Clone, Queryable, Selectable,ToSchema)]
-#[derive(Serialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
+#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::loginfo)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LogInfo {
@@ -22,21 +22,25 @@ pub struct LogInfo {
     user_id: i32,
 }
 
+// #[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
+// #[diesel(table_name = crate::schema::loginfo)]
+// #[diesel(check_for_backend(diesel::pg::Pg))]
+
 #[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::loginfo)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 
 pub struct UpdateLogInfo {
-    title: String,
-    description: Option<String>,
-    depth: f32,
-    start_pressure: i32,
-    end_pressure: i32,
-    vawe_power: Option<f32>,
-    side_view: Option<f32>,
-    water_temperature: Option<f32>,
-    start_datetime: NaiveDateTime,
-    end_datetime: NaiveDateTime,
+  pub  title: String,
+  pub  description: Option<String>,
+  pub  depth: f32,
+  pub  start_pressure: i32,
+  pub  end_pressure: i32,
+  pub  vawe_power: Option<f32>,
+  pub  side_view: Option<f32>,
+  pub  water_temperature: Option<f32>,
+  pub  start_datetime: NaiveDateTime,
+  pub  end_datetime: NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, ToSchema)]

@@ -18,7 +18,8 @@ pub mod apiDoc {
             users::router::router::login_user_handler
         ),
         components(
-            schemas(logbook::model::LogInfo)
+            schemas(logbook::model::LogInfo),
+            schemas(logbook::model::UpdateLogInfo)
         ),
         modifiers(&SecurityAddon),
         tags(
