@@ -19,7 +19,8 @@ pub mod apiDoc {
         ),
         components(
             schemas(logbook::model::LogInfo),
-            schemas(logbook::model::UpdateLogInfo)
+            schemas(logbook::model::UpdateLogInfo),
+            schemas(logbook::model::CreateLogInfo),
         ),
         modifiers(&SecurityAddon),
         tags(

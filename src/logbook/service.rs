@@ -1,6 +1,6 @@
 pub mod service {
     use crate::common::formatters::date;
-    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+    
     use diesel::{
         prelude::*,
         r2d2::{ConnectionManager, PooledConnection},
@@ -83,7 +83,7 @@ pub mod service {
                 .expect("error to loading Logbook"))
         }
 
-        pub fn update_loginfo_by_id(&mut self, update_id: i32, query: model::UpdateLogInfo) -> Result<usize, Error> {
+        pub fn update_loginfo_by_id(&mut self, update_id: i32, query: model::UpdateLogInfo) -> Result<i32, Error> {
             let model::UpdateLogInfo {
                 title: tit, 
                 description: descr, 
@@ -103,10 +103,6 @@ pub mod service {
 
             match existing_user {
                 Ok(_) => {
-
-                    let d = NaiveDate::from_ymd_opt(2015, 6, 3).unwrap();
-                    let t = NaiveTime::from_hms_milli_opt(12, 34, 56, 789).unwrap();
-
                     let update_loginfo = diesel::update(loginfo).set((
                         title.eq(tit),
                         description.eq(descr),
@@ -116,15 +112,49 @@ pub mod service {
                         vawe_power.eq(vawe),
                         side_view.eq(side),
                         water_temperature.eq(water_temp),
-                        start_datetime.eq(NaiveDateTime::new(d, t)),
-                        end_datetime.eq(NaiveDateTime::new(d, t)),
+                        start_datetime.eq(start_date),
+                        end_datetime.eq(end_date),
                     ))
                     .execute(&mut self.connection);
 
-                    update_loginfo
+                    Ok(update_id)
                 }
                 Err(_) => Err(Error::NotFound),
             }
+        }
+
+        pub fn create_loginfo(&mut self, query: model::CreateLogInfo) -> Result<i32, Error> {
+            let model::CreateLogInfo {
+                title: tit,
+                description: descr,
+                depth: dep,
+                start_pressure: start_pres,
+                end_pressure: end_pres,
+                vawe_power: vawe_pow,
+                side_view: side,
+                water_temperature: water_temp,
+                start_datetime: start_date,
+                end_datetime: end_date,
+                user_id: user,
+                ..} = query;
+            
+           let new_loginfo = diesel::insert_into(loginfo).values((
+                title.eq(tit),
+                description.eq(descr),
+                depth.eq(dep),
+                start_pressure.eq(start_pres),
+                end_pressure.eq(end_pres),
+                vawe_power.eq(vawe_pow),
+                side_view.eq(side),
+                water_temperature.eq(water_temp),
+                start_datetime.eq(start_date),
+                end_datetime.eq(end_date),
+                user_id.eq(user),
+            ))
+            .returning(id)
+            .get_result(&mut self.connection);
+
+        new_loginfo
         }
     }
 }

@@ -9,6 +9,7 @@ pub mod router {
 
     use crate::logbook::model::{
         UpdateLogInfo,
+        CreateLogInfo,
         LogInfo
     };
     use crate::logbook::service::service::{
@@ -129,16 +130,25 @@ pub mod router {
     #[utoipa::path(
         post,
         path = "/log_info/",
-        request_body = model::CreateLogInfo,
+        request_body = CreateLogInfo,
 
     )]
     pub async fn create_loginfo_handler(
         State(shared_state): State<ConnectionPool>,
-        Json(body): Json<UpdateLogInfo>,
+        Json(body): Json<CreateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        Ok((StatusCode::OK, Json(json!({
-            "body": body,
-        }))))
+        let conntection = shared_state.pool.get()
+        .expect("Failed connection to POOL");
+
+    match log_info_table::new(conntection).create_loginfo(body) {
+        Ok(user_id) => {
+            Ok((StatusCode::OK, Json(json!(user_id))))
+        },
+        Err(err)  => {
+            println!("{}", err);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Errorr"))))
+        }
+    }
     }
 
 
