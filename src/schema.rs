@@ -35,6 +35,7 @@ diesel::table! {
         date_of_birth -> Timestamp,
         #[max_length = 100]
         password -> Varchar,
+        is_verified -> Bool,
     }
 }
 
