@@ -27,6 +27,8 @@ utoipa-rapidoc = { version = "3.0.0", features = ["axum"] }
 chrono = {version = "0.4.34", features = ['serde']}
 cargo-watch = "8.5.2"
 lettre = "0.11.4"
+argon2 = "0.5.3"
+rand_core = "0.6.4"
 
 [[bin]]
 name = "axum_api_with_auth"

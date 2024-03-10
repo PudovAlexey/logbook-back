@@ -20,7 +20,7 @@ impl UserRole {
     }
 }
 
-#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema, Clone)]
+#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct USER {
@@ -37,6 +37,7 @@ pub struct USER {
  pub is_verified: bool,
 }
 
+#[derive(ToSchema, Debug)]
 pub struct CreateUserHandler {
     pub email: String,
     pub name: String,
@@ -50,7 +51,7 @@ pub struct CreateUserHandler {
     pub is_verified: bool,
 }
 
-#[derive(ToSchema)]
+#[derive(ToSchema, Debug, Serialize, Deserialize)]
 pub struct CreateUserHandlerQUERY {
     pub email: String,
     pub name: String,
@@ -71,7 +72,7 @@ impl From<CreateUserHandlerQUERY> for CreateUserHandler {
             created_at: Utc::now().naive_utc(),
             updated_at: Utc::now().naive_utc(),
             is_verified: false,
-            password: make_hashed_password(value.password),
+            password: value.password,
             role: UserRole::new(UserRole::USER),
         }
     }
