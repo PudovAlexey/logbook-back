@@ -17,12 +17,14 @@ pub mod apiDoc {
             logbook::router::router::create_loginfo_handler,
             users::router::router::create_user_handler,
             users::router::router::verify_user_handler,
+            users::router::router::login_user_handler,
         ),
         components(
             schemas(logbook::model::LogInfo),
             schemas(logbook::model::UpdateLogInfo),
             schemas(logbook::model::CreateLogInfo),
             schemas(users::model::CreateUserHandlerQUERY),
+            schemas(users::model::LoginUser),
         ),
         modifiers(&SecurityAddon),
         tags(

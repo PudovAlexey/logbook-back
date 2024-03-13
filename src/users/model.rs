@@ -20,11 +20,11 @@ impl UserRole {
     }
 }
 
-#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema)]
+#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema, Clone)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct USER {
- pub id: i32,
+ pub id: uuid::Uuid,
  pub email: String,
  pub name: String,
  pub surname: Option<String>,
@@ -76,4 +76,17 @@ impl From<CreateUserHandlerQUERY> for CreateUserHandler {
             role: UserRole::new(UserRole::USER),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenClaims {
+    pub sub: String,
+    pub iat: usize,
+    pub exp: usize
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct LoginUser {
+   pub email: String,
+   pub password: String
 }

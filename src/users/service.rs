@@ -4,10 +4,7 @@ pub mod service {
         password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     };
     use diesel::{
-        prelude::*,
-        r2d2::{ConnectionManager, PooledConnection},
-        result::Error,
-        PgConnection,
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_types::Uuid, PgConnection
     };
     use rand_core::OsRng;
 
@@ -28,10 +25,28 @@ pub mod service {
             UserTable { connection }
         }
 
+        pub fn get_user_by_id(&mut self, user_id: uuid::Uuid) -> Result<USER, diesel::result::Error> {
+            let query = users.filter(id.eq(user_id));
+
+            Ok(query
+                .select(USER::as_select())
+                .first(&mut self.connection)
+                .expect("error to loading Logbook"))
+        }
+
+        pub fn get_user_by_email(&mut self, user_email: String) -> Result<USER, diesel::result::Error> {
+            let query = users.filter(email.eq(user_email));
+
+            Ok(query
+                .select(USER::as_select())
+                .first(&mut self.connection)
+                .expect("error to loading Logbook"))
+        }
+
         pub fn register_user_handler(
             &mut self,
             params: CreateUserHandlerQUERY,
-        ) -> Result<i32, diesel::result::Error> {
+        ) -> Result<uuid::Uuid, diesel::result::Error> {
             let user_data: CreateUserHandler = CreateUserHandler::from(params);
 
             let existing_user: Option<USER> = users
@@ -68,7 +83,7 @@ pub mod service {
                                 updated_at.eq(user_data.updated_at),
                                 date_of_birth.eq(user_data.date_of_birth),
                                 password.eq(pass),
-                                is_verified.eq(false),
+                                is_verified.eq(true),
                             ))
                             .returning(id)
                             .get_result(&mut self.connection);
@@ -80,29 +95,24 @@ pub mod service {
             }
         }
 
-       pub fn user_verify(
-            &mut self,
-            user_id: i32,
-        ) -> Result<i32, Error>  {
+        pub fn user_verify(&mut self, user_id: uuid::Uuid) -> Result<uuid::Uuid, Error> {
             let existing_user: Option<USER> = users
-            .filter(id.eq(user_id))
-            .select(USER::as_select())
-            .first(&mut self.connection)
-            .optional()
-            .expect("error to loading Logbook");
+                .filter(id.eq(user_id))
+                .select(USER::as_select())
+                .first(&mut self.connection)
+                .optional()
+                .expect("error to loading Logbook");
 
-        if existing_user.is_some() {
-          diesel::update(users)
-          .filter(id.eq(user_id))
-            .set((
-                is_verified.eq(true)
-            ))
-            .execute(&mut self.connection);
+            if existing_user.is_some() {
+                diesel::update(users)
+                    .filter(id.eq(user_id))
+                    .set((is_verified.eq(true)))
+                    .execute(&mut self.connection);
 
-        Ok(user_id)
-        } else {
-            Err(diesel::result::Error::RollbackTransaction)
-        }
+                Ok(user_id as uuid::Uuid)
+            } else {
+                Err(diesel::result::Error::RollbackTransaction)
+            }
         }
     }
 }
