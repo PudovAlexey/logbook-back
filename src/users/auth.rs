@@ -1,11 +1,7 @@
 use std::{fmt::format, sync::Arc};
 
 use axum::{
-    extract::State,
-    middleware::Next,
-    response::IntoResponse,
-    Json,
-    http::{header, StatusCode}
+    body::Body, extract::State, http::{header, StatusCode}, middleware::Next, response::{IntoResponse, Response}, Json
 };
 use crate::common::env::ENV;
 use crate::users::service::service::UserTable;
@@ -17,6 +13,7 @@ use jsonwebtoken::{
 use crate::users::model::TokenClaims;
 use axum_extra::extract::cookie::CookieJar;
 
+#[derive(Debug)]
 pub struct ErrorResponse {
     pub status: &'static str,
     pub message: String,
@@ -26,12 +23,13 @@ use crate::{
     common::db::ConnectionPool
 };
 
-pub async fn auth<B>(
+pub async fn auth(
     cookie_jar: CookieJar,
     State(shared_state): State<ConnectionPool>,
     mut req: http::Request<axum::body::Body>,
     next: Next,
-) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
+) -> Response {
+
     let token = cookie_jar
     .get("token")
     .map(|cookie| cookie.value().to_string())
@@ -49,14 +47,7 @@ pub async fn auth<B>(
     });
 
     let token = token
-    .ok_or_else(|| {
-        let json_error = ErrorResponse {
-            status: "fail",
-            message: "You are not logged in, please provide token".to_string(),
-        };
-
-        (StatusCode::UNAUTHORIZED, Json(json_error))
-    })?;
+    .expect("Error token");
 
     let claims = decode::<TokenClaims>(
         &token,
@@ -70,7 +61,8 @@ pub async fn auth<B>(
         };
 
         (StatusCode::UNAUTHORIZED, Json(json_error))
-    })?
+    })
+    .expect("Error")
     .claims;
 
     let user_uuid = uuid::Uuid::parse_str(&claims.sub)
@@ -81,7 +73,8 @@ pub async fn auth<B>(
         };
 
         (StatusCode::UNAUTHORIZED, Json(json_error))
-    })?;
+    })
+    .expect("eror");
 
     let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
@@ -101,11 +94,10 @@ pub async fn auth<B>(
             message: "The user belonging to this token no longer exists".to_string(),
         };
         (StatusCode::UNAUTHORIZED, Json(json_error))
-    })?;
+    })
+    .expect("error");
 
     req.extensions_mut().insert(user);
-    Ok(next.run(req).await)
+    next.run(req).await
 
-
-    // req.extensions_mut().insert(user)
 }

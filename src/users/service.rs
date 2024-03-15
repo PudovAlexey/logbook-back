@@ -1,12 +1,15 @@
 pub mod service {
     use crate::{logbook::model, users::model::USER};
     use argon2::{
-        password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+        password_hash::{SaltString, Value}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     };
+    use axum::response::IntoResponse;
     use diesel::{
-        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_types::Uuid, PgConnection
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_types::{Json, Uuid}, PgConnection
     };
+    use http::StatusCode;
     use rand_core::OsRng;
+    use serde_json::json;
 
     use crate::{
         schema::loginfo,
@@ -83,7 +86,7 @@ pub mod service {
                                 updated_at.eq(user_data.updated_at),
                                 date_of_birth.eq(user_data.date_of_birth),
                                 password.eq(pass),
-                                is_verified.eq(true),
+                                is_verified.eq(false),
                             ))
                             .returning(id)
                             .get_result(&mut self.connection);

@@ -1,7 +1,7 @@
 pub mod router {
     use core::time;
 
-    use axum::body;
+    use axum::{body, middleware};
     use axum::extract::{Path, State};
     use ::time::Duration;
     use axum::{response::IntoResponse, response::Response, Json, Router, http::header};
@@ -10,14 +10,15 @@ pub mod router {
     };
     use chrono::Utc;
     use diesel::dsl::IntervalDsl;
-    use diesel::expression::is_aggregate::No;
-    use http::StatusCode;
+    use http::{StatusCode};
+    use crate::users::auth::auth;
     use serde_json::{json, Value};
     use tokio::join;
     use crate::common::env::ENV;
     use crate::common::mailer::{
         Mailer
     };
+    use crate::users::auth;
     use jsonwebtoken::{
         encode, EncodingKey, Header
     };
@@ -31,10 +32,16 @@ pub mod router {
     use crate::{common::db::ConnectionPool, users::model::CreateUserHandlerQUERY, users::model::LoginUser};
 
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
+        // let auth_middleware = Laye(shared_connection_pool.clone(), auth);
+        let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
+        // let layered_auth_middleware = auth_middleware.layer_fn();
         Router::new()
             .route("/register/", axum::routing::post(create_user_handler))
             .route("/register/verify/:id", axum::routing::post(verify_user_handler))
             .route("/login", axum::routing::post(login_user_handler))
+            .route("/logout", axum::routing::get(logout_user_handler)
+            .route_layer(auth_middleware)
+        )
             .with_state(shared_connection_pool)
     }
 
@@ -181,5 +188,21 @@ pub mod router {
 
         Ok(res)
 
+    }
+
+    pub async fn logout_user_handler() -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        let cookie = Cookie::build("")
+        .path("/")
+        .max_age(Duration::hours(-1))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+    let mut response = Response::new(json!({"status": "success"}).to_string());
+
+    response.headers_mut()
+    .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+
+    Ok(response)
     }
 }
