@@ -1,18 +1,17 @@
 pub mod service {
-    use crate::{logbook::model, users::model::USER};
+    use crate::{users::model::USER};
     use argon2::{
-        password_hash::{SaltString, Value}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+        password_hash::{SaltString}, Argon2, PasswordHasher,
     };
-    use axum::response::IntoResponse;
+    
     use diesel::{
-        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_types::{Json, Uuid}, PgConnection
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, PgConnection
     };
-    use http::StatusCode;
+    
     use rand_core::OsRng;
-    use serde_json::json;
+    
 
     use crate::{
-        schema::loginfo,
         users::model::{CreateUserHandler, CreateUserHandlerQUERY},
     };
 
@@ -66,7 +65,7 @@ pub mod service {
                 let hashed_password = Argon2::default()
                     .hash_password(user_data.password.as_bytes(), &salt)
                     .map_err(|e| {
-                        let eror_response = serde_json::json!({
+                        let _eror_response = serde_json::json!({
                             "status": "fail",
                             "message": format!("Error while hashing password: {}", e)
                         });
@@ -93,7 +92,7 @@ pub mod service {
 
                         create_user
                     }
-                    Err(err) => Err(diesel::result::Error::RollbackTransaction),
+                    Err(_err) => Err(diesel::result::Error::RollbackTransaction),
                 }
             }
         }
@@ -109,7 +108,7 @@ pub mod service {
             if existing_user.is_some() {
                 diesel::update(users)
                     .filter(id.eq(user_id))
-                    .set((is_verified.eq(true)))
+                    .set(is_verified.eq(true))
                     .execute(&mut self.connection);
 
                 Ok(user_id as uuid::Uuid)

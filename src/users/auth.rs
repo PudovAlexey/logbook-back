@@ -1,7 +1,7 @@
-use std::{fmt::format, sync::Arc};
+
 
 use axum::{
-    body::Body, extract::State, http::{header, StatusCode}, middleware::Next, response::{IntoResponse, Response}, Json
+    extract::State, http::{header, StatusCode}, middleware::Next, response::{Response}, Json
 };
 use crate::common::env::ENV;
 use crate::users::service::service::UserTable;
@@ -88,7 +88,7 @@ pub async fn auth(
         (StatusCode::INTERNAL_SERVER_ERROR, Json(json_error))
     });
 
-    let user = user.map_err(|e| {
+    let user = user.map_err(|_e| {
         let json_error = ErrorResponse {
             status: "fail",
             message: "The user belonging to this token no longer exists".to_string(),

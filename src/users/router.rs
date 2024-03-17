@@ -1,28 +1,28 @@
 pub mod router {
-    use core::time;
+    
 
-    use axum::{body, middleware};
+    use axum::{middleware};
     use axum::extract::{Path, State};
     use ::time::Duration;
     use axum::{response::IntoResponse, response::Response, Json, Router, http::header};
     use axum_extra::extract::cookie::{
         Cookie, SameSite,
     };
-    use chrono::Utc;
+    
     use diesel::dsl::IntervalDsl;
     use http::{StatusCode};
     use crate::users::auth::auth;
     use serde_json::{json, Value};
-    use tokio::join;
+    
     use crate::common::env::ENV;
     use crate::common::mailer::{
         Mailer
     };
-    use crate::users::auth;
+    
     use jsonwebtoken::{
         encode, EncodingKey, Header
     };
-    use crate::schema::loginfo::user_id;
+    
     use crate::users::model::TokenClaims;
 
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -73,7 +73,7 @@ pub mod router {
                 Ok((StatusCode::OK, Json(json!({"test": id}))))
 
             },
-            Err(error) => {
+            Err(_error) => {
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"error": "Failed to read empire"})),
@@ -101,7 +101,7 @@ pub mod router {
             Ok(_) => {
                 Ok((StatusCode::OK, Json(json!({"test": "test"}))))
             },
-            Err(err) => {
+            Err(_err) => {
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"error": "Failed to read empire"})),

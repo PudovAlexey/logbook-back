@@ -7,17 +7,15 @@ use crate::common::env::ENV;
 
 use apiDoc::apiDoc::ApiDoc;
 
-use common::{
-    mailer::Mailer
-};
 
-use schema::loginfo::user_id;
+
+
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use utoipa_redoc::{Redoc, Servable};
     
 use tokio::net::TcpListener;
-use common::{load_env_variable::load_env_variable};
+
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -26,7 +24,6 @@ use std::{
 use axum::{Router};
 
 use crate:: {
-    common::env,
     common::db
 };
 
@@ -34,7 +31,7 @@ use logbook::router::{self as logbook_routes};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let port = ENV::new().APP_HOST;
+    let _port = ENV::new().APP_HOST;
     let db_url = ENV::new().DATABASE_URL;
 
     let shared_connection_pool = db::create_shared_connection_pool(db_url, 1);

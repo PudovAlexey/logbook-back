@@ -113,7 +113,7 @@ pub mod router {
                 Json(json!(updated_id)),
             ))
          }
-         Err(error) => {
+         Err(_error) => {
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"error": "Failed to read empire"})),

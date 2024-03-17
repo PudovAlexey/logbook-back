@@ -1,6 +1,5 @@
 use chrono::{
   NaiveDateTime,
-  Utc,
 };
 use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};

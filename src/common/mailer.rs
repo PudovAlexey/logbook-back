@@ -1,4 +1,4 @@
-use lettre::message::header::{ContentType, From};
+use lettre::message::header::{ContentType};
 use lettre:: {SmtpTransport, Transport};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::Message;

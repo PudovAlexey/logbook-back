@@ -2,9 +2,7 @@ use chrono::{NaiveDateTime, Utc};
 use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::common::security::{
-    make_hashed_password
-};
+
 
 enum UserRole {
     USER,

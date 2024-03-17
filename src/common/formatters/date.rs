@@ -1,6 +1,6 @@
 
 pub mod date {
-    use chrono::{DateTime, FixedOffset, NaiveDateTime};
+    use chrono::{NaiveDateTime};
 
    pub fn make_timestamp_from_string(str: &str) -> Result<NaiveDateTime, &'static str> {
 
@@ -17,7 +17,7 @@ pub mod date {
         Ok(parsed_date) => {
             Ok(parsed_date)
         },
-        Err(e) => {
+        Err(_e) => {
             Err("Parsing error")
         }
         

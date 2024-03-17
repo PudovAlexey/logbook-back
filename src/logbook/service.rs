@@ -103,7 +103,7 @@ pub mod service {
 
             match existing_user {
                 Ok(_) => {
-                    let update_loginfo = diesel::update(loginfo).set((
+                    let _update_loginfo = diesel::update(loginfo).set((
                         title.eq(tit),
                         description.eq(descr),
                         depth.eq(dep),

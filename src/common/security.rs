@@ -1,3 +1,3 @@
-pub fn make_hashed_password(str: String) -> String {
+pub fn make_hashed_password(_str: String) -> String {
     String::from("test")
 }
