@@ -1,4 +1,5 @@
 pub mod service {
+    use crate::common::redis::Redis;
     use crate::{users::model::USER};
     use argon2::{
         password_hash::{SaltString}, Argon2, PasswordHasher,

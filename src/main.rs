@@ -1,8 +1,8 @@
-pub mod common;
 pub mod logbook;
 pub mod schema;
 pub mod apiDoc;
 pub mod users;
+pub mod common;
 use crate::common::env::ENV;
 
 use apiDoc::apiDoc::ApiDoc;
@@ -48,13 +48,13 @@ async fn main() -> Result<(), std::io::Error> {
 }
 
 // fn main() {
-//     println!("{}", &ENV::new().DATABASE_URL)
-//     // let mailer =  Mailer::new(Mailer {
-//     //     to: "hajecig739@hidelux.com".to_string(),
-//     //     subject: "New subject".to_string(),
-//     //     body: "New email body".to_string(),
-//     // });
+//     let mut redisClient = common::redis::Redis::new();
 
-//     // mailer.send();
-//     // // println!("{}", &ENV::new().SMTP_PASSWORD)
+//     redisClient.set_expire_item(SetExpireItem {
+//         key: String::from("EXPIRE_VARIABLE"),
+//         value: "EXPIRES IN 5 SECS",
+//         expires: 5
+//     });
+
+
 // }

@@ -9,6 +9,7 @@ pub struct ENV {
    pub SMTP_USERNAME: String,
    pub SMTP_PASSWORD: String,
    pub SMTP_TRANSPORT: String,
+   pub REDIS_PORT: String,
 }
 
 impl ENV {
@@ -22,6 +23,7 @@ impl ENV {
             SMTP_USERNAME: load_env_variable("SMTP_USERNAME"),
             SMTP_PASSWORD: load_env_variable("SMTP_PASSWORD"),
             SMTP_TRANSPORT: load_env_variable("SMTP_TRANSPORT"),
+            REDIS_PORT: load_env_variable("REDIS_PORT"),
         }
     }
 }

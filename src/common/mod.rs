@@ -4,3 +4,4 @@ pub mod db;
 pub mod formatters;
 pub mod security;
 pub mod mailer;
+pub mod redis;

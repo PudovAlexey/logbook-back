@@ -1,6 +1,13 @@
 pub mod router {
+    use std::fmt::format;
+
+    use crate::common::redis::{
+        Redis,
+        SetExpireItem,
+    };
     
 
+    use argon2::PasswordVerifier;
     use axum::{middleware};
     use axum::extract::{Path, State};
     use ::time::Duration;
@@ -18,6 +25,8 @@ pub mod router {
     use crate::common::mailer::{
         Mailer
     };
+
+    use rand_core::OsRng;
     
     use jsonwebtoken::{
         encode, EncodingKey, Header
@@ -25,7 +34,9 @@ pub mod router {
     
     use crate::users::model::TokenClaims;
 
-    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    use argon2::{
+        password_hash::{SaltString}, Argon2, PasswordHasher, PasswordHash,
+    };
 
     use crate::users::service::service::UserTable;
 
@@ -60,18 +71,46 @@ pub mod router {
 
         let email = body.email.clone();
 
+        let salt = SaltString::generate(&mut OsRng);
+        let hashed_email = Argon2::default()
+                    .hash_password(body.email.as_bytes(), &salt)
+                    .map_err(|e| {
+                        let _eror_response = serde_json::json!({
+                            "status": "fail",
+                            "message": format!("Error while hashing password: {}", e)
+                        });
+                    })
+                    .map(|hash| hash.to_string())
+                    .unwrap();
+
+        let hashed_key = format!("verify.{}", hashed_email);
+
         match UserTable::new(conntection).register_user_handler(body) {
             Ok(id) => {
+               let expires_token = Redis::new().set_expire_item(SetExpireItem {
+                key: hashed_key.clone(),
+                value: id.to_string(),
+                expires: 3600,
+               });
+
+               println!("test {:#?}", expires_token);
+
+               println!("hashed key {}", hashed_key);
+
+              if expires_token.status == "success" {
                 let mailer = Mailer::new(Mailer {
-                    to: email.to_string(),
-                    subject: "New subject".to_string(),
-                    body: format!("go to link for complete registration /register/verify/{}", id)
-                });
-
-                mailer.send();
-
-                Ok((StatusCode::OK, Json(json!({"test": id}))))
-
+                       to: email.to_string(),
+                       subject: "New subject".to_string(),
+                       body: format!("go to link for complete registration http://localhost:{}/register/verify/{}", ENV::new().APP_HOST ,hashed_key)
+                   });
+            mailer.send();
+            Ok((StatusCode::OK, Json(json!({"test": id}))))
+               } else {
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "Failed to read empire"})),
+                ))
+               }
             },
             Err(_error) => {
                 Err((
@@ -91,23 +130,38 @@ pub mod router {
         ),
     )]
 
+    // pub async fn verify_user_handler(
+    //     State(shared_state): State<ConnectionPool>,
+    //     Path(id): Path<uuid::Uuid>,
+    // ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+    //     let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+    //     match UserTable::new(connection).user_verify(id) {
+    //         Ok(_) => {
+    //             Ok((StatusCode::OK, Json(json!({"test": "test"}))))
+    //         },
+    //         Err(_err) => {
+    //             Err((
+    //                 StatusCode::INTERNAL_SERVER_ERROR,
+    //                 Json(json!({"error": "Failed to read empire"})),
+    //             ))
+    //         }
+    //     }
+    // }
+
     pub async fn verify_user_handler(
         State(shared_state): State<ConnectionPool>,
-        Path(id): Path<uuid::Uuid>,
+        Path(id): Path<String>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let claims_user_id = Redis::new().getItem(id);
 
-        match UserTable::new(connection).user_verify(id) {
-            Ok(_) => {
-                Ok((StatusCode::OK, Json(json!({"test": "test"}))))
-            },
-            Err(_err) => {
-                Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": "Failed to read empire"})),
-                ))
-            }
+        match claims_user_id {
+            Ok(user) => println!("token {}", user),
+            Err(_) => println!("can't find user")
         }
+
+        Ok((StatusCode::OK, Json(json!({"test": "test"}))))
     }
 
 
