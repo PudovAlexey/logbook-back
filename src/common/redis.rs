@@ -61,8 +61,12 @@ impl Redis {
         }
     }
 
-    pub fn getItem(mut self, key: String) -> Result<String, RedisError> {
+    pub fn get_item(mut self, key: String) -> Result<String, RedisError> {
         self.connection.get(key)
+    }
+
+    pub fn remove_item(mut self, key: String) -> Result<String, RedisError> {
+        self.connection.del(key)
     }
 
     pub fn new() -> Redis {

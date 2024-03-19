@@ -46,15 +46,3 @@ async fn main() -> Result<(), std::io::Error> {
 
     axum::serve(listener, app.into_make_service()).await
 }
-
-// fn main() {
-//     let mut redisClient = common::redis::Redis::new();
-
-//     redisClient.set_expire_item(SetExpireItem {
-//         key: String::from("EXPIRE_VARIABLE"),
-//         value: "EXPIRES IN 5 SECS",
-//         expires: 5
-//     });
-
-
-// }
