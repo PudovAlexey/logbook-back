@@ -7,6 +7,7 @@ use crate::common::env::ENV;
 pub struct Mailer {
    pub to: String,
    pub subject: String,
+   pub header: ContentType,
    pub body: String,
 }
 
@@ -15,6 +16,7 @@ impl Mailer {
         Self {
             to: params.to,
             subject: params.subject,
+            header: params.header,
             body: params.body,
         }
     }
@@ -24,7 +26,7 @@ impl Mailer {
             // .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
             .to(self.to.parse().unwrap())
             .subject(self.body.clone())
-            .header(ContentType::TEXT_PLAIN)
+            .header(self.header.clone())
             .body(self.body.clone())
             .unwrap();
 

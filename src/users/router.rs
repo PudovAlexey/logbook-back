@@ -3,6 +3,7 @@ pub mod router {
     use crate::common::error::{ErrorMessage, RecordsMessage};
     use crate::common::redis::{Redis, SetExpireItem};
 
+    use lettre::message::header::ContentType;
     use ::time::Duration;
     use argon2::PasswordVerifier;
     use axum::extract::{Path, State};
@@ -38,7 +39,7 @@ pub mod router {
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
                 "/register/verify/:id",
-                axum::routing::post(verify_user_handler),
+                axum::routing::get(verify_user_handler),
             )
             .route("/login", axum::routing::post(login_user_handler))
             .route(
@@ -107,7 +108,8 @@ pub mod router {
                println!("faliled to generate hashing pass")
             })
             .map(|hash| hash.to_string())
-            .unwrap();
+            .unwrap()
+            .replace("/", ".");
 
         let hashed_key = format!("verify.{}", hashed_email);
 
@@ -125,9 +127,10 @@ pub mod router {
 
                 if expires_token.status == "success" {
                     let mailer = Mailer::new(Mailer {
+                       header: ContentType::TEXT_HTML,
                        to: email.to_string(),
                        subject: "New subject".to_string(),
-                       body: format!("go to link for complete registration http://localhost:{}/register/verify/{}", ENV::new().APP_HOST ,hashed_key)
+                       body: format!("go to link for complete registration <a href=\"http://localhost:{}/register/verify/{}\">http://localhost:{}/register/verify/{}</a>", ENV::new().APP_HOST ,hashed_key, ENV::new().APP_HOST ,hashed_key)
                    });
                     mailer.send();
                     Ok((StatusCode::OK, Json(json!({"test": id}))))
@@ -167,7 +170,7 @@ pub mod router {
     }
 
     #[utoipa::path(
-        post,
+        get,
         path = "/register/verify/{id}",
         params(
             ("id" = i32, Path, description="Element id")
@@ -178,6 +181,7 @@ pub mod router {
         State(shared_state): State<ConnectionPool>,
         Path(id): Path<String>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        println!("test");
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let claims_user_id = Redis::new().get_item(id.clone());
 
@@ -204,14 +208,14 @@ pub mod router {
                     },
                 );
 
-                let result = claims_error.send()
-                .map_err(|e| {
-                    e
-                })
-                .unwrap()
-                .misssmatched_error();
+                // let result = claims_error.send()
+                // .map_err(|e| {
+                //     e
+                // })
+                // .unwrap()
+                // .misssmatched_error();
 
-            Err(result)
+                Err((StatusCode::OK, Json(json!({"detail": "failed to read verify key"}))))
             }
         }
     }
