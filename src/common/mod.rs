@@ -5,4 +5,4 @@ pub mod formatters;
 pub mod security;
 pub mod mailer;
 pub mod redis;
-pub mod  error;
+pub mod validators;

@@ -3,6 +3,10 @@ use chrono::{NaiveDateTime, Utc};
 use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
 use http::StatusCode;
 use regex::Regex;
+use crate::{common::validators::{
+    validate_email,
+    validate_password,
+}, schema::users::{is_verified, password}};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use serde_json::{json, Value};
@@ -81,47 +85,14 @@ impl From<CreateUserHandlerQUERY> for CreateUserHandler {
 }
 
 impl CreateUserHandlerQUERY {
-    pub fn password_verify(self) -> Result<String, (StatusCode, Json<Value>)> {
-        let password = self.password;
-
-        let mut has_uppercase = false;
-        let mut has_lowercase = false;
-        let mut has_digit = false;
-        let mut has_whitespace = false;
-        let mut has_chars = 0;
-        for c in password.chars() {
-            has_chars += 1;
-            if c.is_uppercase() {
-                has_uppercase = true;
-            } else if c.is_lowercase() {
-                has_lowercase = true;
-            } else if c.is_digit(10) {
-                has_digit = true;
-            } else if c.is_whitespace() {
-                has_whitespace = true;
-            }
-        }
-       let matching = has_chars >= 8 && has_uppercase && has_lowercase && has_digit && !has_whitespace;
-
-       if matching {
-        Ok(password)
-       } else {
-           Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"error": "password is incorrect"}))))
-       }
+    pub fn password_verify(self) -> Result<String, String> {
+        validate_password(self.password)
 
 
     }
 
-    pub fn email_verify(self) -> Result<String, (StatusCode, Json<Value>)> {
-        let email = self.email;
-        let email_regex = Regex::new(r"^([a-z0-9-_+]([a-z0-9-_+.]*[a-z0-9-_+])?)@([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6})").unwrap();
-
-        if email_regex.is_match(&email) {
-            Ok(email)
-        } else {
-            Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"error": "email is incorrect"}))))
-            
-        }
+    pub fn email_verify(self) -> Result<String, String> {
+        validate_email(self.email)
     }
 }
 
@@ -132,8 +103,52 @@ pub struct TokenClaims {
     pub exp: usize
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct LoginUser {
    pub email: String,
    pub password: String
+}
+
+impl LoginUser {
+    pub fn password_verify(self) -> Result<String, String> {
+        validate_password(self.password)
+
+
+    }
+
+    pub fn email_verify(self) -> Result<String, String> {
+        validate_email(self.email)
+    }
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct UserRemoveSensitiveInfo {
+    pub id: uuid::Uuid,
+    pub email: String,
+    pub name: String,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub date_of_birth: NaiveDateTime,
+}
+
+impl From<USER> for UserRemoveSensitiveInfo {
+    fn from(value: USER) -> Self {
+        let USER { id, email, name, surname, patronymic, role, created_at, updated_at, date_of_birth, ..} = value;
+
+        UserRemoveSensitiveInfo {
+            id,
+            email,
+            name,
+            surname,
+            patronymic,
+            role,
+            created_at,
+            updated_at,
+            date_of_birth,
+        }
+    }
 }

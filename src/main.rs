@@ -7,6 +7,9 @@ use crate::common::env::ENV;
 
 use apiDoc::apiDoc::ApiDoc;
 
+use http::HeaderValue;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
+
 
 
 
@@ -42,7 +45,11 @@ async fn main() -> Result<(), std::io::Error> {
     .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
     .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
-    .merge(users::router::router::user_routes(shared_connection_pool.clone()));
+    .merge(users::router::router::user_routes(shared_connection_pool.clone()))
+    .layer(CorsLayer::permissive())
+    .layer(TraceLayer::new_for_http());
+    // .layer(CorsLayer::new().allow_origin(HeaderValue::from_static("http://localhost:8081")));
+    // .layer(CorsLayer::new().allow_origin("http://localhost:8081/".parse::<HeaderValue>().unwrap()));
 
     axum::serve(listener, app.into_make_service()).await
 }

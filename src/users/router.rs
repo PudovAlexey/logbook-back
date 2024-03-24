@@ -1,6 +1,4 @@
 pub mod router {
-
-    use crate::common::error::{ErrorMessage, RecordsMessage};
     use crate::common::redis::{Redis, SetExpireItem};
 
     use lettre::message::header::ContentType;
@@ -15,6 +13,8 @@ pub mod router {
     use http::StatusCode;
     use serde_json::{json, Value};
     use tokio::time::error;
+
+    use crate::users::model::UserRemoveSensitiveInfo;
 
     use crate::common::env::ENV;
     use crate::common::mailer::Mailer;
@@ -59,42 +59,18 @@ pub mod router {
         State(shared_state): State<ConnectionPool>,
         Json(body): Json<CreateUserHandlerQUERY>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let claims_error = RecordsMessage::new();
 
         let verify_email = body.clone().email_verify();
 
         let varify_password = body.clone().password_verify();
 
-        let claims_error = if verify_email.is_err() {
-            claims_error.add_key(
-                String::from("email"),
-                ErrorMessage {
-                    path: vec![String::from("password")],
-                    message: String::from("password is invalid"),
-                },
-            )
-        } else {
-            claims_error
-        };
+        if verify_email.is_err() {
+          return  Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to create user"}))))
+        }
 
-        let claims_error = if varify_password.is_err() {
-            claims_error.add_key(
-                String::from("email"),
-                ErrorMessage {
-                    path: vec![String::from("password")],
-                    message: String::from("password is invalid"),
-                },
-            )
-        } else {
-            claims_error
-        };
-
-        let claims_error = claims_error
-            .send()
-            .map_err(|e| {
-                return e;
-            })
-            .unwrap();
+        if varify_password.is_err() {
+            return  Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to create user"}))))
+        }
 
         let conntection = shared_state.pool.get().expect("Failed connection to POOL");
 
@@ -135,24 +111,7 @@ pub mod router {
                     mailer.send();
                     Ok((StatusCode::OK, Json(json!({"test": id}))))
                 } else {
-                    let error = claims_error
-                        .add_key(
-                            String::from("email"),
-                            ErrorMessage {
-                                path: vec![String::from("password")],
-                                message: String::from("password is invalid"),
-                            },
-                        )
-                        .send()
-                        .map_err(|e| {
-                            return e;
-                        })
-                        .unwrap();
-
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"error": error})),
-                    ))
+                    return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to create user"}))))
                 }
             }
             Err(_error) => {
@@ -185,7 +144,6 @@ pub mod router {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let claims_user_id = Redis::new().get_item(id.clone());
 
-        let claims_error = RecordsMessage::new();
 
         match claims_user_id {
             Ok(user_id) => {
@@ -200,22 +158,7 @@ pub mod router {
                 }
             }
             Err(_) => {
-                let claims_error = claims_error.add_key(
-                    String::from("key_error"),
-                    ErrorMessage {
-                        path: vec![],
-                        message: String::from("failed to read verify key"),
-                    },
-                );
-
-                // let result = claims_error.send()
-                // .map_err(|e| {
-                //     e
-                // })
-                // .unwrap()
-                // .misssmatched_error();
-
-                Err((StatusCode::OK, Json(json!({"detail": "failed to read verify key"}))))
+                return  Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to verify user"}))))
             }
         }
     }
@@ -230,6 +173,18 @@ pub mod router {
         Json(body): Json<LoginUser>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+        let errors = vec![body.clone().password_verify(), body.clone().email_verify()];
+
+        if (errors.iter().any(|x| x.is_err())) {
+
+         return Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({
+                "detail": {
+                    "email": body.clone().password_verify(),
+                    "password": body.clone().email_verify()
+                }
+            }))))
+        }
 
         let user = UserTable::new(connection)
             .get_user_by_email(body.email)
@@ -283,7 +238,7 @@ pub mod router {
 
         let mut res = Response::new(
             json!({
-                "status": "success",
+                "data": UserRemoveSensitiveInfo::from(user),
             })
             .to_string(),
         );
