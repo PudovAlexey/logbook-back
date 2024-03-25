@@ -36,9 +36,11 @@ use logbook::router::{self as logbook_routes};
 async fn main() -> Result<(), std::io::Error> {
     let _port = ENV::new().APP_HOST;
     let db_url = ENV::new().DATABASE_URL;
+    let api_host = ENV::new().APP_HOST;
+    let app_port: u16 = ENV::new().APP_PORT;
 
     let shared_connection_pool = db::create_shared_connection_pool(db_url, 1);
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 8080));
+    let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await?;
 
     let app = Router::new()

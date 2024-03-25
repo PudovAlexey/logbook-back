@@ -1,6 +1,25 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    avatar (id) {
+        id -> Int4,
+        image_id -> Int4,
+        user_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    image (id) {
+        id -> Int4,
+        path -> Text,
+        #[max_length = 100]
+        filename -> Nullable<Varchar>,
+        created_at -> Nullable<Timestamp>,
+        updated_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     loginfo (id) {
         id -> Int4,
         title -> Varchar,
@@ -36,12 +55,16 @@ diesel::table! {
         password -> Varchar,
         is_verified -> Bool,
         id -> Uuid,
+        avatar_id -> Nullable<Int4>,
     }
 }
 
+diesel::joinable!(avatar -> image (image_id));
 diesel::joinable!(loginfo -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    avatar,
+    image,
     loginfo,
     users,
 );
