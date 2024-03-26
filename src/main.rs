@@ -3,6 +3,8 @@ pub mod schema;
 pub mod apiDoc;
 pub mod users;
 pub mod common;
+pub mod images;
+
 use crate::common::env::ENV;
 
 use apiDoc::apiDoc::ApiDoc;

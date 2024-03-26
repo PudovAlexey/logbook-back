@@ -36,6 +36,7 @@ pub mod router {
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
+            .route("/healthchecker", axum::routing::get(health_checker_handler))
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
                 "/register/verify/:id",
@@ -264,5 +265,16 @@ pub mod router {
             .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
 
         Ok(response)
+    }
+
+    pub async fn health_checker_handler() -> impl IntoResponse {
+        const MESSAGE: &str = "JWT Authentication in Rust using Axum, Postgres, and SQLX";
+
+        let json_response = serde_json::json!({
+            "status": "success",
+            "message": MESSAGE
+        });
+    
+        Json(json_response)
     }
 }
