@@ -41,6 +41,7 @@ pub struct USER {
  pub date_of_birth: NaiveDateTime,
  pub password: String,
  pub is_verified: bool,
+ pub avatar_id: Option<i32>,
 }
 
 #[derive(ToSchema, Debug)]
@@ -149,6 +150,39 @@ impl From<USER> for UserRemoveSensitiveInfo {
             created_at,
             updated_at,
             date_of_birth,
+        }
+    }
+}
+
+pub struct UpdateUserData {
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: Option<String>,
+    pub updated_at: NaiveDateTime,
+    pub avatar_id: Option<i32>,
+}
+
+pub struct UpdateUserDataQuery {
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: Option<String>,
+    pub avatar_id: Option<i32>,
+}
+
+impl From<UpdateUserDataQuery> for UpdateUserData {
+    fn from(value: UpdateUserDataQuery) -> Self {
+        UpdateUserData {
+            email: value.email,
+            name: value.name,
+            surname: value.surname,
+            patronymic: value.patronymic,
+            role: value.role,
+            updated_at: Utc::now().naive_utc(),
+            avatar_id: value.avatar_id,
         }
     }
 }

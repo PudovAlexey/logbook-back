@@ -1,18 +1,20 @@
 pub mod router {
+    extern crate image;
     use crate::common::redis::{Redis, SetExpireItem};
 
-    use lettre::message::header::ContentType;
+    use multipart::server::Multipart;
+
     use ::time::Duration;
     use argon2::PasswordVerifier;
     use axum::extract::{Path, State};
-    use axum::middleware;
     use axum::{http::header, response::IntoResponse, response::Response, Json, Router};
+    use axum::{middleware, Extension};
     use axum_extra::extract::cookie::{Cookie, SameSite};
+    use lettre::message::header::ContentType;
 
     use crate::users::auth::auth;
     use http::StatusCode;
     use serde_json::{json, Value};
-    use tokio::time::error;
 
     use crate::users::model::UserRemoveSensitiveInfo;
 
@@ -33,6 +35,13 @@ pub mod router {
         common::db::ConnectionPool, users::model::CreateUserHandlerQUERY, users::model::LoginUser,
     };
 
+    use crate::images::service::service::ImagesTable;
+
+    use crate::images::model::{
+        CreateAvatarQuery,
+        CreateImageQuery
+    };
+
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
@@ -47,6 +56,7 @@ pub mod router {
                 "/logout",
                 axum::routing::get(logout_user_handler).route_layer(auth_middleware),
             )
+            .route("/set_avatar", axum::routing::post(set_user_avatar))
             .with_state(shared_connection_pool)
     }
 
@@ -60,17 +70,22 @@ pub mod router {
         State(shared_state): State<ConnectionPool>,
         Json(body): Json<CreateUserHandlerQUERY>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-
         let verify_email = body.clone().email_verify();
 
         let varify_password = body.clone().password_verify();
 
         if verify_email.is_err() {
-          return  Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to create user"}))))
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"detail": "failed to create user"})),
+            ));
         }
 
         if varify_password.is_err() {
-            return  Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to create user"}))))
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"detail": "failed to create user"})),
+            ));
         }
 
         let conntection = shared_state.pool.get().expect("Failed connection to POOL");
@@ -80,10 +95,7 @@ pub mod router {
         let salt = SaltString::generate(&mut OsRng);
         let hashed_email = Argon2::default()
             .hash_password(body.email.as_bytes(), &salt)
-            .map_err(|e| {
-
-               println!("faliled to generate hashing pass")
-            })
+            .map_err(|e| println!("faliled to generate hashing pass"))
             .map(|hash| hash.to_string())
             .unwrap()
             .replace("/", ".");
@@ -112,7 +124,10 @@ pub mod router {
                     mailer.send();
                     Ok((StatusCode::OK, Json(json!({"test": id}))))
                 } else {
-                    return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to create user"}))))
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"detail": "failed to create user"})),
+                    ));
                 }
             }
             Err(_error) => {
@@ -145,7 +160,6 @@ pub mod router {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let claims_user_id = Redis::new().get_item(id.clone());
 
-
         match claims_user_id {
             Ok(user_id) => {
                 let uuid = uuid::Uuid::parse_str(&user_id).unwrap();
@@ -159,7 +173,10 @@ pub mod router {
                 }
             }
             Err(_) => {
-                return  Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to verify user"}))))
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"detail": "failed to verify user"})),
+                ))
             }
         }
     }
@@ -178,13 +195,15 @@ pub mod router {
         let errors = vec![body.clone().password_verify(), body.clone().email_verify()];
 
         if (errors.iter().any(|x| x.is_err())) {
-
-         return Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({
-                "detail": {
-                    "email": body.clone().password_verify(),
-                    "password": body.clone().email_verify()
-                }
-            }))))
+            return Err((
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({
+                    "detail": {
+                        "email": body.clone().password_verify(),
+                        "password": body.clone().email_verify()
+                    }
+                })),
+            ));
         }
 
         let user = UserTable::new(connection)
@@ -274,7 +293,84 @@ pub mod router {
             "status": "success",
             "message": MESSAGE
         });
-    
+
         Json(json_response)
     }
+
+    // pub async fn set_user_avatar(
+    //     Extension(request): Extension<Option<axum::extract::Multipart<axum::body::box_body::RequestBody>>>,
+    //     State(shared_state): State<ConnectionPool>,
+    //     Json(body): Json<LoginUser>,
+    // ) -> impl IntoResponse {
+    //     Json(json!({"user": "data"}))
+    // }
+
+    use std::env;
+    use std::fs::DirBuilder;
+    use std::fs::File;
+    use std::io::prelude::*;
+
+    pub async fn set_user_avatar(
+        Path(user_id): Path<uuid::Uuid>,
+        State(shared_state): State<ConnectionPool>,
+        mut multipart: axum::extract::Multipart
+    ) {
+        let dir_path = "assets/avatar";
+        let current_dir = env::current_dir().unwrap();
+        while let Some(mut field) = multipart.next_field().await.unwrap() {
+            let name = field.name().unwrap().to_string();
+
+            if name == "file" {
+                let mut data = Vec::new();
+
+                while let Some(chunk) = field.chunk().await.unwrap() {
+                    data.extend_from_slice(chunk.as_ref());
+                }
+
+                let filename = field.file_name().unwrap();
+                let path = format!("assets/avatar/{}", &filename);
+
+                let dir = current_dir.join(dir_path);
+                let new_dir = DirBuilder::new().recursive(true).create(dir);
+
+                if (new_dir.is_ok()) {
+                    let mut file = File::create(&path).unwrap();
+                    file.write_all(&data).unwrap();
+                    let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+                    let avatar_query = ImagesTable::new(connection)
+                    .set_avatar(CreateAvatarQuery {
+                        user_id,
+                        image_data: CreateImageQuery {
+                            path,
+                            filename: String::from(filename)
+                        }
+                    });
+
+                    if avatar_query.is_ok() {
+                        
+                    } else {
+                        
+                    }
+                }
+            }
+        }
+    }
+
+    // pub async fn set_user_avatar(mut multipart: axum::extract::Multipart) {
+    //     while let Some(mut field) = multipart.next_field().await.unwrap() {
+    //         let name = field.name().unwrap().to_string();
+    //         let mut data = Vec::new();
+
+    //         while let Some(chunk) = field.next().await {
+    //             data.extend_from_slice(&chunk.unwrap());
+    //         }
+
+    //         let path = format!("assets/{}", name);
+
+    //         let mut file = File::create(&path).unwrap();
+    //         file.write_all(&data).unwrap();
+
+    //     }
+    // }
 }

@@ -1,4 +1,5 @@
 pub mod apiDoc {
+    use axum;
     use utoipa::{
         OpenApi, 
         Modify,
@@ -7,6 +8,7 @@ pub mod apiDoc {
 
     use crate::logbook;
     use crate::users;
+    use crate::images;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -25,6 +27,7 @@ pub mod apiDoc {
             schemas(logbook::model::CreateLogInfo),
             schemas(users::model::CreateUserHandlerQUERY),
             schemas(users::model::LoginUser),
+            schemas(images::model::CreateImageQuery),
         ),
         modifiers(&SecurityAddon),
         tags(

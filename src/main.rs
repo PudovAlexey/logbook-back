@@ -57,3 +57,23 @@ async fn main() -> Result<(), std::io::Error> {
 
     axum::serve(listener, app.into_make_service()).await
 }
+
+// use std::fs::{
+//     DirBuilder
+// };
+
+// use std::env;
+
+// fn main() {
+//     let current_dir = env::current_dir().unwrap();
+
+//     let path = "assets";
+
+//     let dir = current_dir.join(path);
+
+//     println!("{:?}", dir);
+
+// DirBuilder::new()
+//     .recursive(true)
+//     .create(dir).unwrap();   
+// }

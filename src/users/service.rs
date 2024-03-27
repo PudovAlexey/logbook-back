@@ -13,7 +13,7 @@ pub mod service {
     
 
     use crate::{
-        users::model::{CreateUserHandler, CreateUserHandlerQUERY},
+        users::model::{CreateUserHandler, CreateUserHandlerQUERY, UpdateUserDataQuery, UserRemoveSensitiveInfo},
     };
 
     use crate::schema::users::dsl::*;
@@ -115,6 +115,33 @@ pub mod service {
                 Ok(user_id as uuid::Uuid)
             } else {
                 Err(diesel::result::Error::RollbackTransaction)
+            }
+        }
+
+        pub fn update_user_handler(&mut self, user_id: uuid::Uuid, params: UpdateUserDataQuery) -> Result<uuid::Uuid, Error> {
+            let existing_user = self.get_user_by_id(user_id);
+
+            let param = params.role.as_ref().map(|p| p.to_string());
+
+            if existing_user.is_ok() {
+                let update = diesel::update(users)
+                .filter(id.eq(user_id))
+                .set((
+                    email.eq(params.email.as_ref().map(|e| e.to_string()).unwrap()),
+                    name.eq(params.name.as_ref().map(|n| n.to_string()).unwrap()),
+                    surname.eq(params.surname.as_ref().map(|s| s.to_string())),
+                    patronymic.eq(params.patronymic.as_ref().map(|p| p.to_string())),
+                    role.eq(params.role.as_ref().map(|r| r.to_string()).unwrap()),
+                    avatar_id.eq(params.avatar_id),
+                ))
+                .returning(id)
+                .get_result(&mut self.connection);
+
+                update
+            } else {
+               let error =  existing_user.unwrap_err();
+
+               Err(error)
             }
         }
     }
