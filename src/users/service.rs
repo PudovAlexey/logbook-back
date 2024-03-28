@@ -127,12 +127,12 @@ pub mod service {
                 let update = diesel::update(users)
                 .filter(id.eq(user_id))
                 .set((
-                    // email.eq(params.email.as_ref().map(|e| e.to_string()).unwrap()),
-                    // name.eq(params.name.as_ref().map(|n| n.to_string()).unwrap()),
-                    // surname.eq(params.surname.as_ref().map(|s| s.to_string())),
-                    // patronymic.eq(params.patronymic.as_ref().map(|p| p.to_string())),
-                    // role.eq(params.role.as_ref().map(|r| r.to_string()).unwrap()),
-                    avatar_id.eq(params.avatar_id),
+                    params.email.as_ref().map(|e| email.eq(e.as_str())),
+                    params.name.as_ref().map(|n| name.eq(n.as_str())),
+                    params.surname.as_ref().map(|s| surname.eq(s.as_str())),
+                    params.patronymic.as_ref().map(|p| patronymic.eq(p.as_str())),
+                    params.role.as_ref().map(|r| role.eq(r.as_str())),
+                    params.avatar_id.map(|aid| avatar_id.eq(aid)),
                 ))
                 .returning(id)
                 .get_result(&mut self.connection);

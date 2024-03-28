@@ -375,20 +375,7 @@ pub mod router {
         Ok((StatusCode::OK, Json(json!({"error": "err"}))))
     }
 
-    // pub async fn set_user_avatar(mut multipart: axum::extract::Multipart) {
-    //     while let Some(mut field) = multipart.next_field().await.unwrap() {
-    //         let name = field.name().unwrap().to_string();
-    //         let mut data = Vec::new();
-
-    //         while let Some(chunk) = field.next().await {
-    //             data.extend_from_slice(&chunk.unwrap());
-    //         }
-
-    //         let path = format!("assets/{}", name);
-
-    //         let mut file = File::create(&path).unwrap();
-    //         file.write_all(&data).unwrap();
-
-    //     }
-    // }
+    pub async fn get_user_by_id() {
+        
+    }
 }

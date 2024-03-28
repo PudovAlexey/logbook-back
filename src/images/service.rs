@@ -1,14 +1,20 @@
 
 pub mod service {
     extern crate image;
+    use core::panic;
+    use std::borrow::{Borrow, BorrowMut};
+
+    use crate::users::service::service::UserTable;
     use crate::images::model::{
         CreateImageQuery, Image,CreateImage, CreateAvatarQuery
     };
 
+    use axum::Error;
     use diesel::{
         prelude::*,
         r2d2::{ConnectionManager, PooledConnection}, ExpressionMethods, PgConnection, RunQueryDsl
     };
+
 
     type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
     
