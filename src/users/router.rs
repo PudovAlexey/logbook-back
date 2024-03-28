@@ -11,6 +11,7 @@ pub mod router {
     use axum::{middleware, Extension};
     use axum_extra::extract::cookie::{Cookie, SameSite};
     use lettre::message::header::ContentType;
+    use uuid::uuid;
 
     use crate::users::auth::auth;
     use http::StatusCode;
@@ -309,12 +310,15 @@ pub mod router {
     use std::fs::DirBuilder;
     use std::fs::File;
     use std::io::prelude::*;
+    use crate::users::model::UpdateUserDataQuery;
 
     pub async fn set_user_avatar(
-        Path(user_id): Path<uuid::Uuid>,
+        // Path(id): Path<uuid::Uuid>,
         State(shared_state): State<ConnectionPool>,
         mut multipart: axum::extract::Multipart
-    ) {
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        // println!("{}", id);
+        let user_id = uuid!("a829fee7-66de-4372-a81d-597f5a7f58be"); 
         let dir_path = "assets/avatar";
         let current_dir = env::current_dir().unwrap();
         while let Some(mut field) = multipart.next_field().await.unwrap() {
@@ -348,13 +352,27 @@ pub mod router {
                     });
 
                     if avatar_query.is_ok() {
+                        let connectio2 = shared_state.pool.get().expect("Failed connection to POOL");
+
+                        let update_user = UserTable::new(connectio2).update_user_handler(user_id, UpdateUserDataQuery {
+                            avatar_id: Some(avatar_query.unwrap()),
+                            email: None,
+                            name: None,
+                            surname: None,
+                            patronymic: None,
+                            role: None,
+                        });
                         
+                        let user = update_user.unwrap();
+
+                        return Ok((StatusCode::OK, Json(json!({"data": user}))))
                     } else {
-                        
+                        return Err((StatusCode::BAD_REQUEST, Json(json!({"detail": "error"}))))
                     }
                 }
             }
         }
+        Ok((StatusCode::OK, Json(json!({"error": "err"}))))
     }
 
     // pub async fn set_user_avatar(mut multipart: axum::extract::Multipart) {

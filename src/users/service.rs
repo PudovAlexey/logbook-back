@@ -127,11 +127,11 @@ pub mod service {
                 let update = diesel::update(users)
                 .filter(id.eq(user_id))
                 .set((
-                    email.eq(params.email.as_ref().map(|e| e.to_string()).unwrap()),
-                    name.eq(params.name.as_ref().map(|n| n.to_string()).unwrap()),
-                    surname.eq(params.surname.as_ref().map(|s| s.to_string())),
-                    patronymic.eq(params.patronymic.as_ref().map(|p| p.to_string())),
-                    role.eq(params.role.as_ref().map(|r| r.to_string()).unwrap()),
+                    // email.eq(params.email.as_ref().map(|e| e.to_string()).unwrap()),
+                    // name.eq(params.name.as_ref().map(|n| n.to_string()).unwrap()),
+                    // surname.eq(params.surname.as_ref().map(|s| s.to_string())),
+                    // patronymic.eq(params.patronymic.as_ref().map(|p| p.to_string())),
+                    // role.eq(params.role.as_ref().map(|r| r.to_string()).unwrap()),
                     avatar_id.eq(params.avatar_id),
                 ))
                 .returning(id)
