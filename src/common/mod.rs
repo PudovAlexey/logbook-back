@@ -6,3 +6,4 @@ pub mod security;
 pub mod mailer;
 pub mod redis;
 pub mod validators;
+pub mod multipart;

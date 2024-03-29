@@ -1,7 +1,10 @@
 pub mod router {
     extern crate image;
+    use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
+    use image::buffer::ConvertBuffer;
+    use image::{open, DynamicImage, GrayImage, ImageBuffer, Rgb, RgbaImage};
     use multipart::server::Multipart;
 
     use ::time::Duration;
@@ -38,10 +41,7 @@ pub mod router {
 
     use crate::images::service::service::ImagesTable;
 
-    use crate::images::model::{
-        CreateAvatarQuery,
-        CreateImageQuery
-    };
+    use crate::images::model::{CreateAvatarQuery, CreateImageQuery, Image};
 
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
@@ -57,7 +57,7 @@ pub mod router {
                 "/logout",
                 axum::routing::get(logout_user_handler).route_layer(auth_middleware),
             )
-            .route("/set_avatar", axum::routing::post(set_user_avatar))
+            .route("/set_avatar/:id", axum::routing::post(set_user_avatar))
             .with_state(shared_connection_pool)
     }
 
@@ -306,76 +306,75 @@ pub mod router {
     //     Json(json!({"user": "data"}))
     // }
 
+    use crate::users::model::UpdateUserDataQuery;
     use std::env;
     use std::fs::DirBuilder;
     use std::fs::File;
     use std::io::prelude::*;
-    use crate::users::model::UpdateUserDataQuery;
-
     pub async fn set_user_avatar(
-        // Path(id): Path<uuid::Uuid>,
+        Path(id): Path<uuid::Uuid>,
         State(shared_state): State<ConnectionPool>,
-        mut multipart: axum::extract::Multipart
+        mut multipart: axum::extract::Multipart,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        // println!("{}", id);
-        let user_id = uuid!("a829fee7-66de-4372-a81d-597f5a7f58be"); 
+        let image = ImageMultipart::new(multipart).await;
         let dir_path = "assets/avatar";
         let current_dir = env::current_dir().unwrap();
-        while let Some(mut field) = multipart.next_field().await.unwrap() {
-            let name = field.name().unwrap().to_string();
+        let path = format!("{}/{}", &dir_path, &image.filename);
+        let dir = current_dir.join(dir_path);
+        let new_dir = DirBuilder::new().recursive(true).create(dir);
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
-            if name == "file" {
-                let mut data = Vec::new();
+        if new_dir.is_ok() {
+            let mut file = File::create(&path).unwrap();
+            file.write_all(&image.image_vec).unwrap();
+            let img = image::open(&path).unwrap().crop(
+                image.crop.x,
+                image.crop.y,
+                image.crop.width,
+                image.crop.height,
+            );
+            img.save(&path).unwrap();
 
-                while let Some(chunk) = field.chunk().await.unwrap() {
-                    data.extend_from_slice(chunk.as_ref());
-                }
+            let avatar_query = ImagesTable::new(connection).set_avatar(CreateAvatarQuery {
+                user_id: id,
+                image_data: CreateImageQuery {
+                    path,
+                    filename: String::from(image.filename),
+                },
+            });
 
-                let filename = field.file_name().unwrap();
-                let path = format!("assets/avatar/{}", &filename);
-
-                let dir = current_dir.join(dir_path);
-                let new_dir = DirBuilder::new().recursive(true).create(dir);
-
-                if (new_dir.is_ok()) {
-                    let mut file = File::create(&path).unwrap();
-                    file.write_all(&data).unwrap();
-                    let connection = shared_state.pool.get().expect("Failed connection to POOL");
-
-                    let avatar_query = ImagesTable::new(connection)
-                    .set_avatar(CreateAvatarQuery {
-                        user_id,
-                        image_data: CreateImageQuery {
-                            path,
-                            filename: String::from(filename)
-                        }
-                    });
-
-                    if avatar_query.is_ok() {
-                        let connectio2 = shared_state.pool.get().expect("Failed connection to POOL");
-
-                        let update_user = UserTable::new(connectio2).update_user_handler(user_id, UpdateUserDataQuery {
-                            avatar_id: Some(avatar_query.unwrap()),
+            return match avatar_query {
+                Ok(avatar_id) => {
+                    let connectio2 = shared_state.pool.get().expect("Failed connection to POOL");
+                    let update_user = UserTable::new(connectio2).update_user_handler(
+                        id,
+                        UpdateUserDataQuery {
+                            avatar_id: Some(avatar_id),
                             email: None,
                             name: None,
                             surname: None,
                             patronymic: None,
                             role: None,
-                        });
-                        
-                        let user = update_user.unwrap();
+                        },
+                    );
 
-                        return Ok((StatusCode::OK, Json(json!({"data": user}))))
-                    } else {
-                        return Err((StatusCode::BAD_REQUEST, Json(json!({"detail": "error"}))))
+                    
+                    if (update_user.is_ok()) {
+                        Ok((StatusCode::OK, Json(json!({"data": update_user.unwrap()}))))
+                        
+                    }  else {
+                        Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "error"}))))
                     }
                 }
-            }
+                Err(error) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": error.to_string()})))),
+            };
+        } else {
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"detail": "failed to create directory"})),
+            ))
         }
-        Ok((StatusCode::OK, Json(json!({"error": "err"}))))
     }
 
-    pub async fn get_user_by_id() {
-        
-    }
+    pub async fn get_user_by_id() {}
 }
