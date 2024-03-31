@@ -134,6 +134,7 @@ pub struct UserRemoveSensitiveInfo {
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
     pub date_of_birth: NaiveDateTime,
+    pub avatar_url: Option<String>,
 }
 
 impl From<USER> for UserRemoveSensitiveInfo {
@@ -150,6 +151,7 @@ impl From<USER> for UserRemoveSensitiveInfo {
             created_at,
             updated_at,
             date_of_birth,
+            avatar_url: None
         }
     }
 }

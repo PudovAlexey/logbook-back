@@ -1,20 +1,16 @@
 pub mod router {
     extern crate image;
+    use crate::common::jwt::{JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
-
-    use image::buffer::ConvertBuffer;
-    use image::{open, DynamicImage, GrayImage, ImageBuffer, Rgb, RgbaImage};
-    use multipart::server::Multipart;
 
     use ::time::Duration;
     use argon2::PasswordVerifier;
     use axum::extract::{Path, State};
     use axum::{http::header, response::IntoResponse, response::Response, Json, Router};
-    use axum::{middleware, Extension};
+    use axum::{middleware};
     use axum_extra::extract::cookie::{Cookie, SameSite};
     use lettre::message::header::ContentType;
-    use uuid::uuid;
 
     use crate::users::auth::auth;
     use http::StatusCode;
@@ -41,7 +37,7 @@ pub mod router {
 
     use crate::images::service::service::ImagesTable;
 
-    use crate::images::model::{CreateAvatarQuery, CreateImageQuery, Image};
+    use crate::images::model::{CreateAvatarQuery, CreateImageQuery};
 
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
@@ -234,40 +230,37 @@ pub mod router {
             return Err((StatusCode::BAD_REQUEST, Json(err_response)));
         };
 
-        let now = chrono::Utc::now();
-        let iat = now.timestamp() as usize;
-        let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
-        let claims: TokenClaims = TokenClaims {
-            sub: user.id.to_string(),
-            exp,
-            iat,
-        };
+        let token = JWT::new(user.id);
 
-        let token = encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(ENV::new().JWT_SECRET.as_ref()),
-        )
-        .unwrap();
+        let mut avatar_url: Option<String> = None;
 
-        let cookie = Cookie::build(token.to_owned())
-            .path("/")
-            .max_age(Duration::hours(1))
-            .same_site(SameSite::Lax)
-            .http_only(true)
-            .finish();
+        if user.avatar_id.is_some() {
+            let id = user.avatar_id.unwrap();
+            let image_connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+            let a = ImagesTable::new(image_connection)
+            .get_avatar_data(id);
+
+           avatar_url = match a {
+                Ok(data) => Some(data.path),
+                (_) => None
+            };
+        }
+
+        let user = UserRemoveSensitiveInfo::from(user)
+        .avatar_url = avatar_url;
 
         let mut res = Response::new(
             json!({
-                "data": UserRemoveSensitiveInfo::from(user),
+                "data": user,
+                "token": token,
             })
             .to_string(),
         );
 
-        res.headers_mut()
-            .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+        let res_data = token.set_cookie(res);
 
-        Ok(res)
+        Ok(res_data)
     }
 
     pub async fn logout_user_handler() -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
@@ -297,14 +290,6 @@ pub mod router {
 
         Json(json_response)
     }
-
-    // pub async fn set_user_avatar(
-    //     Extension(request): Extension<Option<axum::extract::Multipart<axum::body::box_body::RequestBody>>>,
-    //     State(shared_state): State<ConnectionPool>,
-    //     Json(body): Json<LoginUser>,
-    // ) -> impl IntoResponse {
-    //     Json(json!({"user": "data"}))
-    // }
 
     use crate::users::model::UpdateUserDataQuery;
     use std::env;
@@ -375,6 +360,4 @@ pub mod router {
             ))
         }
     }
-
-    pub async fn get_user_by_id() {}
 }

@@ -9,7 +9,7 @@ use crate::common::env::ENV;
 
 use apiDoc::apiDoc::ApiDoc;
 
-use http::HeaderValue;
+
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 
@@ -34,6 +34,8 @@ use crate:: {
 
 use logbook::router::{self as logbook_routes};
 
+use tower_http::services::fs::ServeDir;
+
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let _port = ENV::new().APP_HOST;
@@ -45,15 +47,17 @@ async fn main() -> Result<(), std::io::Error> {
     let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await?;
 
+
     let app = Router::new()
+    .nest_service("/assets", axum::routing::get_service(ServeDir::new("assets")
+    .append_index_html_on_directories(false)))
+
     .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
     .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
     .merge(users::router::router::user_routes(shared_connection_pool.clone()))
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
-    // .layer(CorsLayer::new().allow_origin(HeaderValue::from_static("http://localhost:8081")));
-    // .layer(CorsLayer::new().allow_origin("http://localhost:8081/".parse::<HeaderValue>().unwrap()));
 
     axum::serve(listener, app.into_make_service()).await
 }

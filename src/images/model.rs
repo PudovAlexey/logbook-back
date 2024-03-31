@@ -1,6 +1,6 @@
 extern crate image;
 use chrono::{NaiveDateTime, Utc};
-use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
+use diesel::{associations::{Associations, Identifiable}, deserialize::Queryable, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -54,9 +54,12 @@ pub struct CreateAvatarQuery {
  pub user_id: uuid::Uuid
 }
 
-pub struct CropAvatar {
- pub x: u32,
- pub y: u32,
- pub width: u32,
- pub height: u32,
+#[derive(Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone)]
+#[diesel(primary_key(id))]
+#[diesel(belongs_to(Avatar, foreign_key = image_id))]
+#[diesel(table_name = crate::schema::image)]
+pub struct AvatarInfo {
+    pub id: i32,
+    pub path: String,
+    pub filename: String,
 }
