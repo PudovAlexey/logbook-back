@@ -51,7 +51,7 @@ pub async fn auth(
 
     let claims = decode::<TokenClaims>(
         &token,
-        &DecodingKey::from_secret(ENV::new().JWT_SECRET.as_ref()),
+        &DecodingKey::from_secret(ENV::new().JWT_ACCESS_SECRET.as_ref()),
         &Validation::default(),
     )
     .map_err(|_| {

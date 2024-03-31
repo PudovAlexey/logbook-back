@@ -2,11 +2,24 @@ use crate::common::env::ENV;
 use crate::users::model::TokenClaims;
 use axum::response::Response;
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use chrono::TimeDelta;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use serde::{Deserialize, Serialize};
 use time::Duration;
 use axum::http::{header};
+
+enum Token {
+    Access,
+    Refresh,
+}
+
+impl Token {
+    fn new(val: Token) -> String {
+        match val {
+            Token::Access => ENV::new().JWT_ACCESS_SECRET,
+            Token::Refresh => ENV::new().JWT_REFRESH_SECRET,
+        }        
+    }
+}
 
 
 #[derive(Deserialize, Serialize)]
@@ -17,7 +30,8 @@ pub struct JWT {
 
 pub struct TokenGenerate {
     user_id: uuid::Uuid,
-    time: TimeDelta,
+    time: i64,
+    token_type: String,
 }
 pub trait JWTToken {
    fn token_generate(value: TokenGenerate) -> String;
@@ -28,17 +42,18 @@ impl JWTToken for JWT {
         fn set_cookie(&self, mut res: Response<String>) -> Response<String> {
             let access_token = &self.access_token;
             let refresh_token = &self.access_token;
+
             
             let access = Cookie::build(format!("access={}", access_token.to_owned()))
             .path("/")
-            .max_age(Duration::minutes(60))
+            .max_age(Duration::minutes(ENV::new().JWT_ACCESS_EXPIRED_IN))
             .same_site(SameSite::Lax)
             .http_only(true)
             .finish();  
 
             let refresh = Cookie::build(format!("refresh={}", refresh_token.to_owned()))
             .path("/")
-            .max_age(Duration::minutes(60))
+            .max_age(Duration::minutes(ENV::new().JWT_REFRESH_EXPIRED_IN))
             .same_site(SameSite::Lax)
             .http_only(true)
             .finish();       
@@ -51,15 +66,19 @@ impl JWTToken for JWT {
 
         fn token_generate(params: TokenGenerate) -> String {
         let now = chrono::Utc::now();
+        let expire_secs = params.time * 60;
+        let time = (now.timestamp() + expire_secs) as usize;
+
+        println!("timestamp is {}", time);
     
         let token = encode(
             &Header::default(),
             &TokenClaims {
                 sub: params.user_id.to_string(),
-                exp: (now + params.time).timestamp() as usize,
+                exp: time,
                 iat: now.timestamp() as usize,
             },
-            &EncodingKey::from_secret(ENV::new().JWT_SECRET.as_ref()),
+            &EncodingKey::from_secret(params.token_type.as_ref()),
         )
         .unwrap();
 
@@ -76,12 +95,14 @@ impl JWT {
   pub  fn new(user_id: uuid::Uuid) -> Self {
         let access_token = <JWT as self::JWTToken>::token_generate( TokenGenerate {
             user_id,
-            time: chrono::Duration::minutes(ENV::new().JWT_ACCESS_EXPIRED_IN),
+            time: ENV::new().JWT_ACCESS_EXPIRED_IN,
+            token_type: Token::new(Token::Access)
         });
 
         let refresh_token = <JWT as self::JWTToken>::token_generate(TokenGenerate {
             user_id,
-            time: chrono::Duration::minutes(ENV::new().JWT_ACCESS_EXPIRED_IN),
+            time: ENV::new().JWT_REFRESH_EXPIRED_IN,
+            token_type: Token::new(Token::Refresh)
         });
 
         JWT {
