@@ -1,6 +1,7 @@
 pub mod router {
     extern crate image;
-    use crate::common::jwt::{JWTToken, JWT};
+    use crate::common::error_boundary::ErrorBoundary::{self, BoundaryHandlers};
+    use crate::common::jwt::{is_valid_token, JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
@@ -23,10 +24,6 @@ pub mod router {
 
     use rand_core::OsRng;
 
-    use jsonwebtoken::{encode, EncodingKey, Header};
-
-    use crate::users::model::TokenClaims;
-
     use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher};
 
     use crate::users::service::service::UserTable;
@@ -42,7 +39,7 @@ pub mod router {
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
-            .route("/healthchecker", axum::routing::get(health_checker_handler))
+            .route("/refresh-tokens/:id", axum::routing::get(health_checker_handler))
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
                 "/register/verify/:id",
@@ -246,9 +243,9 @@ pub mod router {
                 (_) => None
             };
         }
-
-        let user = UserRemoveSensitiveInfo::from(user)
-        .avatar_url = avatar_url;
+        // todo
+        // let user = UserRemoveSensitiveInfo::from(user)
+        // .avatar_url = avatar_url;
 
         let mut res = Response::new(
             json!({
@@ -280,15 +277,68 @@ pub mod router {
         Ok(response)
     }
 
-    pub async fn health_checker_handler() -> impl IntoResponse {
-        const MESSAGE: &str = "JWT Authentication in Rust using Axum, Postgres, and SQLX";
+    use http::HeaderMap;
 
-        let json_response = serde_json::json!({
-            "status": "success",
-            "message": MESSAGE
-        });
 
-        Json(json_response)
+    #[utoipa::path(
+        get,
+        path = "/refresh-tokens/{id}",
+        params(
+            ("id" = i32, Path, description="Element id")
+        ),
+    )]
+    pub async fn health_checker_handler(
+        State(shared_state): State<ConnectionPool>,
+        Path(id): Path<uuid::Uuid>,
+        headers: HeaderMap
+    ) -> impl IntoResponse {
+        let mut res: Json<Value> = Json(json!({"data": "success"}));
+        let mut simple_error = ErrorBoundary::SimpleError::new();
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+        let check_user = UserTable::new(connection)
+        .get_user_by_id(id);
+
+        match check_user {
+            Ok(user) => {
+                let refresh_token = headers.get("refresh_token").unwrap().to_str().unwrap();
+                let is_valid = is_valid_token(refresh_token);
+                
+                if is_valid {
+                    let token = JWT::new(user.id);
+
+                    res = Json(json!({
+                        "data": user,
+                        "token": token
+                    }));
+
+                    } else {
+                        simple_error = simple_error.insert(String::from("your token was not valid. please login again"));
+                   } 
+                
+            },
+            Err(error) => {
+                simple_error = simple_error.insert(String::from("failed to find user"));
+
+            }
+        }
+
+        simple_error.send(res)
+
+        // let refresh_token = headers.get("refresh_token").unwrap().to_str().unwrap();
+
+        // let token = JWT::new(id);
+
+        // println!("{}", refresh_token);
+
+        // const MESSAGE: &str = "JWT Authentication in Rust using Axum, Postgres, and SQLX";
+
+        // let json_response = serde_json::json!({
+        //     "status": "success",
+        //     "message": MESSAGE
+        // });
+
+        // Json(json_response)
     }
 
     use crate::users::model::UpdateUserDataQuery;

@@ -20,6 +20,7 @@ pub mod apiDoc {
             users::router::router::create_user_handler,
             users::router::router::verify_user_handler,
             users::router::router::login_user_handler,
+            users::router::router::health_checker_handler,
         ),
         components(
             schemas(logbook::model::LogInfo),

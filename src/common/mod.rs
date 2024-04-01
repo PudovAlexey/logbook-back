@@ -8,3 +8,4 @@ pub mod redis;
 pub mod validators;
 pub mod multipart;
 pub mod jwt;
+pub mod error_boundary;

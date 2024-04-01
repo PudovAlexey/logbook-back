@@ -2,7 +2,7 @@ use crate::common::env::ENV;
 use crate::users::model::TokenClaims;
 use axum::response::Response;
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use jsonwebtoken::{encode, Header, EncodingKey};
+use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation, errors::Error};
 use serde::{Deserialize, Serialize};
 use time::Duration;
 use axum::http::{header};
@@ -108,6 +108,20 @@ impl JWT {
         JWT {
             access_token,
             refresh_token,
+        }
+    }
+}
+
+pub fn is_valid_token(refresh_token: &str) -> bool {
+    let decoding_key = DecodingKey::from_secret(ENV::new().JWT_REFRESH_SECRET.as_ref()); // Замените на ваш секретный ключ
+    let validation = Validation::default();
+
+    match decode::<TokenClaims>(&refresh_token, &decoding_key, &validation) {
+        Ok(token_data) => {
+            true
+        },
+        Err(err) => {
+            false
         }
     }
 }

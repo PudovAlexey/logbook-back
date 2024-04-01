@@ -141,7 +141,7 @@ impl From<USER> for UserRemoveSensitiveInfo {
     fn from(value: USER) -> Self {
         let USER { id, email, name, surname, patronymic, role, created_at, updated_at, date_of_birth, ..} = value;
 
-        UserRemoveSensitiveInfo {
+       return UserRemoveSensitiveInfo {
             id,
             email,
             name,
