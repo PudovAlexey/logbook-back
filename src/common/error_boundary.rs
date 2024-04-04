@@ -11,6 +11,7 @@ pub mod ErrorBoundary {
    pub trait BoundaryHandlers<T, R> {
        fn insert(self, params: T) -> Self;
        fn send(self, res: R) -> Result<impl IntoResponse, (StatusCode, Json<Value>)>;
+       fn send_error(self) -> (StatusCode, Json<Value>);
     }
 
     #[derive(Clone, Serialize)]
@@ -63,6 +64,10 @@ pub mod ErrorBoundary {
             } else {
                 Ok((StatusCode::OK, Json(json!({"data": *res}))))
             }
+        }
+
+        fn send_error(self) -> (StatusCode, Json<Value>) {
+            (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
         }
     }
      pub struct FieldArrayError {
@@ -124,6 +129,10 @@ pub mod ErrorBoundary {
                 Ok((StatusCode::OK, Json(json!({"data": *res}))))
             }
         }
+
+        fn send_error(self) -> (StatusCode, Json<Value>) {
+            (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
+        }
     }
 
     pub struct SimpleError {
@@ -152,6 +161,10 @@ pub mod ErrorBoundary {
         } else {
             Ok((StatusCode::OK, Json(json!({"data": *res}))))
         }
+    }
+
+    fn send_error(self) -> (StatusCode, Json<Value>) {
+        (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
     }
     }
 }

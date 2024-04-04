@@ -41,7 +41,7 @@ pub trait JWTToken {
 impl JWTToken for JWT {
         fn set_cookie(&self, mut res: Response<String>) -> Response<String> {
             let access_token = &self.access_token;
-            let refresh_token = &self.access_token;
+            let refresh_token = &self.refresh_token;
 
             
             let access = Cookie::build(format!("access={}", access_token.to_owned()))
@@ -69,8 +69,6 @@ impl JWTToken for JWT {
         let expire_secs = params.time * 60;
         let time = (now.timestamp() + expire_secs) as usize;
 
-        println!("timestamp is {}", time);
-    
         let token = encode(
             &Header::default(),
             &TokenClaims {
