@@ -5,9 +5,11 @@ pub mod router {
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
+    use axum_extra::extract::CookieJar;
+    use serde::Deserialize;
     use ::time::Duration;
     use argon2::PasswordVerifier;
-    use axum::extract::{Path, State};
+    use axum::extract::{Path, Query, State};
     use axum::{http::header, response::IntoResponse, response::Response, Json, Router};
     use axum::{middleware};
     use axum_extra::extract::cookie::{Cookie, SameSite};
@@ -34,10 +36,16 @@ pub mod router {
 
     use crate::images::model::{CreateAvatarQuery, CreateImageQuery};
 
+    #[derive(Deserialize)]
+    struct RefreshTokenParams {
+       id: uuid::Uuid,
+       refresh_token: String,
+   }
+
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
-            .route("/refresh-tokens/:id", axum::routing::get(health_checker_handler))
+            .route("/refresh-tokens", axum::routing::get(health_checker_handler))
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
                 "/register/verify/:id",
@@ -282,14 +290,16 @@ pub mod router {
 
     #[utoipa::path(
         get,
-        path = "/refresh-tokens/{id}",
+        path = "/refresh-tokens?id={id}&refresh_token={refresh_token}",
         params(
-            ("id" = i32, Path, description="Element id")
+            ("id" = uuid::Uuid, Path, description="Element id"),
+            ("refresh_token" = String, Path, description="Element id")
         ),
     )]
+
     pub async fn health_checker_handler(
         State(shared_state): State<ConnectionPool>,
-        Path(id): Path<uuid::Uuid>,
+        Query(params): Query<RefreshTokenParams>,
         headers: HeaderMap
     ) -> impl IntoResponse {
         let mut res: Json<Value> = Json(json!({"data": "success"}));
@@ -297,12 +307,13 @@ pub mod router {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
         let check_user = UserTable::new(connection)
-        .get_user_by_id(id);
+        .get_user_by_id(params.id);
 
         match check_user {
             Ok(user) => {
-                let refresh_token = headers.get("refresh_token").unwrap().to_str().unwrap();
-                let is_valid = is_valid_token(refresh_token);
+                let token = params.refresh_token;
+
+                let is_valid = is_valid_token(&token);
                 
                 if is_valid {
                     let token = JWT::new(user.id);
