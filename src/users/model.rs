@@ -188,3 +188,15 @@ impl From<UpdateUserDataQuery> for UpdateUserData {
         }
     }
 }
+
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ForgotPassword {
+  pub email: String
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ResetPassword {
+  pub password: String,
+  pub confirm_password: String
+}

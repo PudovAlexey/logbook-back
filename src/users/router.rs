@@ -17,8 +17,6 @@ pub mod router {
     use http::StatusCode;
     use serde_json::{json, Value};
 
-    use crate::users::model::UserRemoveSensitiveInfo;
-
     use crate::common::env::ENV;
     use crate::common::mailer::Mailer;
 
@@ -50,6 +48,8 @@ pub mod router {
                 "/logout",
                 axum::routing::get(logout_user_handler).route_layer(auth_middleware),
             )
+            .route("/forgot_password/", axum::routing::post(forgot_password_handler))
+            .route("/forgot_password/:hash", axum::routing::post(reset_password_handler))
             .route("/set_avatar/:id", axum::routing::post(set_user_avatar))
             .with_state(shared_connection_pool)
     }
@@ -341,7 +341,7 @@ pub mod router {
         // Json(json_response)
     }
 
-    use crate::users::model::UpdateUserDataQuery;
+    use crate::users::model::{ForgotPassword, ResetPassword, UpdateUserDataQuery};
     use std::env;
     use std::fs::DirBuilder;
     use std::fs::File;
@@ -409,5 +409,43 @@ pub mod router {
                 Json(json!({"detail": "failed to create directory"})),
             ))
         }
+    }
+
+    // #[utoipa::path](
+    //  post,
+    //  path = "/forgot_password",
+    //  request_body = ForgotPassword
+    // )
+
+    #[utoipa::path(
+        post,
+        path = "/forgot_password/",
+        request_body = ForgotPassword
+    )]
+
+// Вводим логин, получаем юзера на изменение пароля и записываем 
+// в редис user_uuid на изменение пароля, отправляем хэш на изменение пароля 
+    pub async fn forgot_password_handler(
+        State(shared_state): State<ConnectionPool>,
+        Json(body): Json<ForgotPassword>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        Ok((StatusCode::OK, Json(json!({"data": ""}))))
+    }
+
+    // юзер перехоит по ссылке из почты, открывается страница с восстановлением пароля // password, confirm_password
+    // меняем пароль в бд
+
+    #[utoipa::path(
+        post,
+        path = "/forgot_password/{hash}",
+        request_body = ResetPassword
+    )]
+
+    pub async fn reset_password_handler(
+        State(shared_state): State<ConnectionPool>,
+        Path(hash): Path<String>,
+        Json(body): Json<ResetPassword>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        Ok((StatusCode::OK, Json(json!({"data": ""}))))
     }
 }

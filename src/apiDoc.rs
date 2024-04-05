@@ -17,10 +17,13 @@ pub mod apiDoc {
             logbook::router::router::get_logbook_by_id,
             logbook::router::router::update_loginfo_handler,
             logbook::router::router::create_loginfo_handler,
+
             users::router::router::create_user_handler,
             users::router::router::verify_user_handler,
             users::router::router::login_user_handler,
             users::router::router::health_checker_handler,
+            users::router::router::forgot_password_handler,
+            users::router::router::reset_password_handler,
         ),
         components(
             schemas(logbook::model::LogInfo),
