@@ -133,3 +133,24 @@ pub fn is_valid_token(refresh_token: &str) -> bool {
         }
     }
 }
+
+pub fn remove_jwt_cookie(mut res: Response<String>) -> Response<String> {
+    let tokens = ["access", "refresh"];
+
+    for name in tokens.iter() {
+        let cookie = Cookie::build(name.to_string())
+        .path("/")
+        .max_age(Duration::hours(-1))
+        .same_site(SameSite::Lax)
+        .http_only(true)
+        .finish();
+
+        res
+            .headers_mut()
+            .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+        
+    }
+
+    res
+
+}

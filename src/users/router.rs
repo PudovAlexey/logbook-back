@@ -1,7 +1,7 @@
 pub mod router {
     extern crate image;
     use crate::common::error_boundary::ErrorBoundary::{self, BoundaryHandlers};
-    use crate::common::jwt::{is_valid_token, JWTToken, JWT};
+    use crate::common::jwt::{is_valid_token, remove_jwt_cookie, JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
@@ -54,11 +54,12 @@ pub mod router {
             .route("/login", axum::routing::post(login_user_handler))
             .route(
                 "/logout",
-                axum::routing::get(logout_user_handler).route_layer(auth_middleware),
+                axum::routing::get(logout_user_handler).route_layer(auth_middleware.clone()),
             )
-            .route("/forgot_password/", axum::routing::post(forgot_password_handler))
-            .route("/forgot_password/:hash", axum::routing::post(reset_password_handler))
-            .route("/set_avatar/:id", axum::routing::post(set_user_avatar))
+            .route("/forgot_password/", axum::routing::post(forgot_password_handler).route_layer(auth_middleware.clone()))
+            .route("/forgot_password/:hash", axum::routing::post(reset_password_handler).route_layer(auth_middleware.clone()))
+            .route("/set_avatar/:id", axum::routing::post(set_user_avatar).route_layer(auth_middleware.clone()))
+            .route("/remove_account/:id", axum::routing::get(remove_accaunt_handler).route_layer(auth_middleware.clone()))
             .with_state(shared_connection_pool)
     }
 
@@ -269,20 +270,12 @@ pub mod router {
     }
 
     pub async fn logout_user_handler() -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let cookie = Cookie::build("")
-            .path("/")
-            .max_age(Duration::hours(-1))
-            .same_site(SameSite::Lax)
-            .http_only(true)
-            .finish();
+        
+        let mut res = Response::new(json!({"status": "success"}).to_string());
 
-        let mut response = Response::new(json!({"status": "success"}).to_string());
+       let res = remove_jwt_cookie(res);
 
-        response
-            .headers_mut()
-            .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
-
-        Ok(response)
+        Ok(res)
     }
 
     use http::HeaderMap;
@@ -335,21 +328,6 @@ pub mod router {
         }
 
         simple_error.send(res)
-
-        // let refresh_token = headers.get("refresh_token").unwrap().to_str().unwrap();
-
-        // let token = JWT::new(id);
-
-        // println!("{}", refresh_token);
-
-        // const MESSAGE: &str = "JWT Authentication in Rust using Axum, Postgres, and SQLX";
-
-        // let json_response = serde_json::json!({
-        //     "status": "success",
-        //     "message": MESSAGE
-        // });
-
-        // Json(json_response)
     }
 
     use crate::users::model::{ForgotPassword, ResetPassword, UpdateUserDataQuery};
@@ -458,5 +436,34 @@ pub mod router {
         Json(body): Json<ResetPassword>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         Ok((StatusCode::OK, Json(json!({"data": ""}))))
+    }
+
+    #[utoipa::path(
+        get,
+        path = "/remove_account/{id}",
+        params(
+            ("id" = uuid::Uuid, Path, description="remove_id")
+        )
+    )]
+
+    pub async fn remove_accaunt_handler(
+        State(shared_state): State<ConnectionPool>,
+        Path(id): Path<uuid::Uuid>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let errors = ErrorBoundary::SimpleError::new();
+
+        match UserTable::new(connection)
+        .remove_user_by_id(id) {
+            Ok(uuid) => {
+                Ok((StatusCode::OK, Json(json!({"data": format!("accaunt with id {} has been removed", uuid)}))))
+            },
+            Err(error) => {
+               let errors = errors.insert(String::from("failed to removing accaunn"));
+
+                Err(errors.send_error())
+            }
+        }
+
     }
 }

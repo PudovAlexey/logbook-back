@@ -144,5 +144,25 @@ pub mod service {
                Err(error)
             }
         }
+
+        pub fn remove_user_by_id(&mut self, user_id: uuid::Uuid) -> Result<uuid::Uuid, Error> {
+            let existing_user = self.get_user_by_id(user_id);
+
+            if existing_user.is_ok() {
+                let delete = diesel::delete(users)
+                .filter(id.eq(user_id))
+                .returning(id)
+                .get_result::<uuid::Uuid>(&mut self.connection)
+                .expect("Failed to delete user");
+                // .get_result(&mut self.connection);
+
+                Ok(delete)
+            } else {
+                let error =  existing_user.unwrap_err();
+
+                Err(error)
+            }
+
+        }
     }
 }
