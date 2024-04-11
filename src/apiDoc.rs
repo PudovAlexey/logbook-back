@@ -24,6 +24,7 @@ pub mod apiDoc {
             users::router::router::health_checker_handler,
             users::router::router::forgot_password_handler,
             users::router::router::reset_password_handler,
+            users::router::router::login_user_handler,
         ),
         components(
             schemas(logbook::model::LogInfo),

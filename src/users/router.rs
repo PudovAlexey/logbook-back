@@ -1,6 +1,7 @@
 pub mod router {
     extern crate image;
-    use crate::common::error_boundary::ErrorBoundary::{self, BoundaryHandlers};
+    use crate::common::error_boundary;
+    use crate::common::error_boundary::ErrorBoundary::{self, BoundaryHandlers, FieldError, InsertFieldError};
     use crate::common::jwt::{is_valid_token, remove_jwt_cookie, JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
@@ -45,7 +46,7 @@ pub mod router {
     pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
-            .route("/refresh-tokens", axum::routing::get(health_checker_handler))
+            .route("/refresh-tokens", axum::routing::post(health_checker_handler))
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
                 "/register/verify/:id",
@@ -54,7 +55,7 @@ pub mod router {
             .route("/login", axum::routing::post(login_user_handler))
             .route(
                 "/logout",
-                axum::routing::get(logout_user_handler).route_layer(auth_middleware.clone()),
+                axum::routing::post(logout_user_handler).route_layer(auth_middleware.clone()),
             )
             .route("/forgot_password/", axum::routing::post(forgot_password_handler).route_layer(auth_middleware.clone()))
             .route("/forgot_password/:hash", axum::routing::post(reset_password_handler).route_layer(auth_middleware.clone()))
@@ -194,19 +195,38 @@ pub mod router {
         Json(body): Json<LoginUser>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let mut error_boundary = ErrorBoundary::ObjectError::new();
 
-        let errors = vec![body.clone().password_verify(), body.clone().email_verify()];
+        let validators = vec![body.clone().password_verify(), body.clone().email_verify()];
+        let mut fire_error = false;
 
-        if (errors.iter().any(|x| x.is_err())) {
-            return Err((
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(json!({
-                    "detail": {
-                        "email": body.clone().password_verify(),
-                        "password": body.clone().email_verify()
+        
+        for (index,field) in validators.iter().enumerate() {
+            if field.is_err() {
+                let mut key = String::new();
+                fire_error = true;
+                match index {
+                    0 => {
+                        key.push_str("password") 
+                    },
+                    1 => {
+                        key.push_str("email")
                     }
-                })),
-            ));
+                    (_) => {}
+                }
+                error_boundary = error_boundary.insert(InsertFieldError {
+                    key,
+                    value: FieldError {
+                        message: String::from("validation error"),
+                        description: field.clone().unwrap_err()
+                    }
+                });
+
+            }
+        }
+
+        if fire_error {
+          return Err(error_boundary.send_error());
         }
 
         let user = UserTable::new(connection)
@@ -228,12 +248,14 @@ pub mod router {
         };
 
         if !is_valid {
-            let err_response = serde_json::json!({
-                "status": "fail",
-                "message": "Invalid email or password",
+            let error_boundary = error_boundary.insert(InsertFieldError {
+                key: String::from("password"),
+                value: FieldError {
+                    message: String::from("login_failed"),
+                    description: String::from("incorrect user or password")
+                }
             });
-
-            return Err((StatusCode::BAD_REQUEST, Json(err_response)));
+          return Err(error_boundary.send_error());
         };
 
         let token = JWT::new(user.id);
@@ -253,8 +275,8 @@ pub mod router {
             };
         }
         // todo
-        // let user = UserRemoveSensitiveInfo::from(user)
-        // .avatar_url = avatar_url;
+        let mut user = UserRemoveSensitiveInfo::from(user);
+        user.avatar_url = avatar_url;
 
         let mut res = Response::new(
             json!({
@@ -269,6 +291,11 @@ pub mod router {
         Ok(res_data)
     }
 
+    #[utoipa::path(
+        post,
+        path = "/logout",
+    )]
+
     pub async fn logout_user_handler() -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         
         let mut res = Response::new(json!({"status": "success"}).to_string());
@@ -282,7 +309,7 @@ pub mod router {
 
 
     #[utoipa::path(
-        get,
+        post,
         path = "/refresh-tokens?id={id}&refresh_token={refresh_token}",
         params(
             ("id" = uuid::Uuid, Path, description="Element id"),
@@ -330,7 +357,7 @@ pub mod router {
         simple_error.send(res)
     }
 
-    use crate::users::model::{ForgotPassword, ResetPassword, UpdateUserDataQuery};
+    use crate::users::model::{ForgotPassword, ResetPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo};
     use std::env;
     use std::fs::DirBuilder;
     use std::fs::File;
