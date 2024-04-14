@@ -195,8 +195,21 @@ pub struct ForgotPassword {
   pub email: String
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ResetPassword {
+  pub secret_code: i32,  
   pub password: String,
-  pub confirm_password: String
+  pub confirm_password: String,
+}
+
+impl ResetPassword {
+    pub fn compare(self) -> bool {
+        self.password == self.confirm_password
+    }
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Queryable)]
+pub struct ResetUserPassword {
+    pub user_id: uuid::Uuid,
+    pub password: String,
 }

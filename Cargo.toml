@@ -27,7 +27,7 @@ utoipa-redoc = { version = "3.0.0", features = ["axum"] }
 utoipa-rapidoc = { version = "3.0.0", features = ["axum"] }
 chrono = {version = "0.4.34", features = ['serde']}
 cargo-watch = "8.5.2"
-lettre = "0.11.4"
+lettre = {version = "0.11.4", features = []}
 argon2 = "0.5.3"
 rand_core = "0.6.4"
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
@@ -36,6 +36,9 @@ redis = "0.25.2"
 image = "0.25.0"
 multipart = "0.18.0"
 base64 = "0.22.0"
+rand = "0.8.5"
+native-tls = "0.2.11"
+lettre_email = "0.9.4"
 
 [[bin]]
 name = "axum_api_with_auth"

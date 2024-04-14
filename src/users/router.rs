@@ -1,18 +1,20 @@
 pub mod router {
     extern crate image;
-    use crate::common::error_boundary;
+    use crate::common::{error_boundary, mailer};
     use crate::common::error_boundary::ErrorBoundary::{self, BoundaryHandlers, FieldError, InsertFieldError};
     use crate::common::jwt::{is_valid_token, remove_jwt_cookie, JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
     use axum_extra::extract::CookieJar;
+    extern crate rand;
+    use rand::Rng;
     use serde::Deserialize;
     use ::time::Duration;
     use argon2::PasswordVerifier;
     use axum::extract::{Path, Query, State};
     use axum::{http::header, response::IntoResponse, response::Response, Json, Router};
-    use axum::{middleware};
+    use axum::{body, middleware};
     use axum_extra::extract::cookie::{Cookie, SameSite};
     use lettre::message::header::ContentType;
 
@@ -57,8 +59,9 @@ pub mod router {
                 "/logout",
                 axum::routing::post(logout_user_handler).route_layer(auth_middleware.clone()),
             )
-            .route("/forgot_password/", axum::routing::post(forgot_password_handler).route_layer(auth_middleware.clone()))
-            .route("/forgot_password/:hash", axum::routing::post(reset_password_handler).route_layer(auth_middleware.clone()))
+            .route("/verification_code/:email", axum::routing::post(request_verification_code))
+            // .route("/forgot_password/", axum::routing::post(forgot_password_handler).route_layer(auth_middleware.clone()))
+            .route("/reset_password/:email", axum::routing::post(reset_password_handler))
             .route("/set_avatar/:id", axum::routing::post(set_user_avatar).route_layer(auth_middleware.clone()))
             .route("/remove_account/:id", axum::routing::get(remove_accaunt_handler).route_layer(auth_middleware.clone()))
             .with_state(shared_connection_pool)
@@ -114,16 +117,23 @@ pub mod router {
                     expires: 3600,
                 });
 
-                println!("test {:#?}", expires_token);
-
-                println!("hashed key {}", hashed_key);
-
                 if expires_token.status == "success" {
                     let mailer = Mailer::new(Mailer {
                        header: ContentType::TEXT_HTML,
                        to: email.to_string(),
                        subject: "New subject".to_string(),
-                       body: format!("go to link for complete registration <a href=\"http://localhost:{}/register/verify/{}\">http://localhost:{}/register/verify/{}</a>", ENV::new().APP_HOST ,hashed_key, ENV::new().APP_HOST ,hashed_key)
+                    //    ENV::new().APP_PROTOCOL , ENV::new().APP_HOST , hashed_key, ENV::new().APP_HOST ,hashed_key
+                       body: format!("go to link for complete registration <a href=\"{}{}:{}/register/verify/{}\">{}{}:{}/register/verify/{}</a>",
+                       ENV::new().APP_PROTOCOL,
+                       ENV::new().APP_HOST,
+                       ENV::new().APP_PORT,
+                       hashed_key,
+                       
+                       ENV::new().APP_PROTOCOL,
+                       ENV::new().APP_HOST,
+                       ENV::new().APP_PORT,
+                       hashed_key
+                    )
                    });
                     mailer.send();
                     Ok((StatusCode::OK, Json(json!({"test": id}))))
@@ -160,7 +170,6 @@ pub mod router {
         State(shared_state): State<ConnectionPool>,
         Path(id): Path<String>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        println!("test");
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let claims_user_id = Redis::new().get_item(id.clone());
 
@@ -280,8 +289,10 @@ pub mod router {
 
         let mut res = Response::new(
             json!({
+                "data": {
                 "data": user,
                 "token": token,
+                }
             })
             .to_string(),
         );
@@ -357,7 +368,7 @@ pub mod router {
         simple_error.send(res)
     }
 
-    use crate::users::model::{ForgotPassword, ResetPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo};
+    use crate::users::model::{ForgotPassword, ResetPassword, ResetUserPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo};
     use std::env;
     use std::fs::DirBuilder;
     use std::fs::File;
@@ -435,35 +446,234 @@ pub mod router {
 
     #[utoipa::path(
         post,
-        path = "/forgot_password/",
+        path = "/verification_code/{email}",
         request_body = ForgotPassword
     )]
 
-// Вводим логин, получаем юзера на изменение пароля и записываем 
-// в редис user_uuid на изменение пароля, отправляем хэш на изменение пароля 
-    pub async fn forgot_password_handler(
+    pub async fn request_verification_code(
+        Path(email): Path<String>,
         State(shared_state): State<ConnectionPool>,
-        Json(body): Json<ForgotPassword>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        Ok((StatusCode::OK, Json(json!({"data": ""}))))
-    }
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let mut error_boundary = ErrorBoundary::SimpleError::new();
 
-    // юзер перехоит по ссылке из почты, открывается страница с восстановлением пароля // password, confirm_password
-    // меняем пароль в бд
+        match UserTable::new(connection).get_user_by_email(email.clone()) {
+            Ok(user) => {
+                let mut rng = rand::thread_rng();
+                // let random_number: u32 = rng.gen_range(100000, 999999);
+                let random_number: u32 = rng.gen_range(100000..999999);
+
+                let expires_token = Redis::new().set_expire_item(SetExpireItem {
+                    key: format!("change_password={}", {&email}),
+                    value: random_number,
+                    expires: 3600,
+                });
+
+                if expires_token.status == "success" {
+
+                    let mailer = Mailer::new(Mailer {
+                        header: ContentType::TEXT_HTML,
+                        to: email,
+                        subject: String::from("enter these code to reset password"),
+                        body: format!("your code is <span>{}</span>", {random_number})
+                    });
+    
+                  let res = mailer.send();
+    
+                    if res.is_ok() {
+                        Ok((StatusCode::OK, Json(json!({"data": res.unwrap()}))))
+                    } else {
+                        error_boundary = error_boundary.insert(String::from("failed to send message"));
+    
+                        Err(error_boundary.send_error())                     
+                    }
+                    
+                } else {
+                    Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "error to load redis port"}))))
+                }
+
+
+            },
+            Err(error) => {
+                error_boundary = error_boundary.insert(String::from("failed to find user"));
+
+                Err(error_boundary.send_error())
+            }
+        }
+
+    }
 
     #[utoipa::path(
         post,
-        path = "/forgot_password/{hash}",
+        path = "/reset_password/{email}",
         request_body = ResetPassword
     )]
 
     pub async fn reset_password_handler(
+        Path(email): Path<String>,
         State(shared_state): State<ConnectionPool>,
-        Path(hash): Path<String>,
         Json(body): Json<ResetPassword>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        Ok((StatusCode::OK, Json(json!({"data": ""}))))
+        
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+        println!("{}", email);
+        
+        match UserTable::new(connection).get_user_by_email(email.clone()) {
+            Ok(user) => {
+                let mut error_boundary = ErrorBoundary::ObjectError::new();
+
+                if (body.clone().compare()) {
+                    let secret_key = Redis::new().get_item(format!("change_password={}", {email}));
+
+                    if secret_key.is_ok() {
+                        let transform_key: i32 = secret_key.unwrap().parse().expect("not a number");
+
+                        if transform_key == body.secret_code {
+                            let is_valid = match PasswordHash::new(&user.password) {
+                                Ok(parsed_hash) => Argon2::default()
+                                .verify_password(body.password.as_bytes(), &parsed_hash)
+                                .map_or(false, |_| true),
+                                Err(_) => false,
+                            };
+                            
+                            if is_valid == false {
+                                let connection2 = shared_state.pool.get().expect("Failed connection to POOL");
+                                let result = UserTable::new(connection2).reset_user_password(ResetUserPassword {
+                                    user_id: user.id,
+                                    password: body.password
+                                    });
+                                    
+                                    if result.is_err() {
+                                        error_boundary = error_boundary.insert(InsertFieldError {
+                                            key: String::from("secret_code"),
+                                            value: FieldError {
+                                                message: String::from("validation error"),
+                                                description: String::from("password is not compared with")
+                                            }
+                                        });   
+                                    } else {
+                                        println!("success")
+                                    }
+
+                            } else {
+                                let mut error_boundary = ErrorBoundary::SimpleError::new();
+
+                                error_boundary = error_boundary.insert(String::from("password can't be like a same password"));
+                
+                               return Err(error_boundary.send_error());
+                            }
+    
+
+                        } else {
+                            error_boundary = error_boundary.insert(InsertFieldError {
+                                key: String::from("secret_code"),
+                                value: FieldError {
+                                    message: String::from("validation error"),
+                                    description: String::from("secret code is incorrect")
+                                }
+                            });   
+                        }
+
+
+
+                    } else {
+                        error_boundary = error_boundary.insert(InsertFieldError {
+                            key: String::from("secret_code"),
+                            value: FieldError {
+                                message: String::from("validation error"),
+                                description: String::from("secret key has is incorrect type")
+                            }
+                        });
+                    }
+                } else {
+                    error_boundary = error_boundary.insert(InsertFieldError {
+                        key: String::from("confirm_password"),
+                        value: FieldError {
+                            message: String::from("validation error"),
+                            description: String::from("password is not compared with compare password")
+                        }
+                    });
+                }
+
+                let res = Json(json!({"data": "password was successfully changed"}));
+
+                error_boundary.send(res)
+            },
+            Err(error) => {
+                let mut error_boundary = ErrorBoundary::SimpleError::new();
+
+                error_boundary = error_boundary.insert(String::from("failed to find user"));
+
+                Err(error_boundary.send_error())
+            }
+        }
     }
+
+// Вводим логин, получаем юзера на изменение пароля и записываем 
+// в редис user_uuid на изменение пароля, отправляем хэш на изменение пароля 
+    // pub async fn forgot_password_handler(
+    //     State(shared_state): State<ConnectionPool>,
+    //     Json(body): Json<ForgotPassword>,
+    // ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+    //     let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+    //     let error_boundary = ErrorBoundary::SimpleError::new();
+
+    //     match UserTable::new(connection).get_user_by_email(body.email) {
+    //         Ok(user) => {
+    //             let salt = SaltString::generate(&mut OsRng);
+    //             let hashed_user_id = Argon2::default()
+    //             .hash_password(user.id.as_bytes(), &salt)
+    //             .map_err(|e| println!("faliled to generate hashing pass"))
+    //             .map(|hash| hash.to_string())
+    //             .unwrap()
+    //             .replace("/", ".");
+
+    //             let hashed_key = format!("password_reset.{}", {hashed_user_id});
+
+    //         let expires_token = Redis::new().set_expire_item(SetExpireItem {
+    //             key: hashed_key.clone(),
+    //             value: user.id.to_string(),
+    //             expires: 3600,
+    //         });
+
+    //           if  expires_token.status == "success" {
+    //                 let mailer = Mailer::new(Mailer {
+    //                     header: ContentType::TEXT_HTML,
+    //                     to: user.email.to_string(),
+    //                     subject: String::from("Logbook reset password"),
+    //                     body: format!("go to link for refresh your password <a href=\"{}{}:{}/forgot_password/{}\">{}{}:{}/forgot_password/{}</a>",
+    //                    ENV::new().APP_PROTOCOL,
+    //                    ENV::new().APP_HOST,
+    //                    ENV::new().APP_PORT,
+    //                    hashed_key,
+                       
+    //                    ENV::new().APP_PROTOCOL,
+    //                    ENV::new().APP_HOST,
+    //                    ENV::new().APP_PORT,
+    //                    hashed_key
+    //                 )
+    //                 });
+
+    //                 mailer.send();
+
+    //                 Ok((StatusCode::OK, Json(json!({"data": user.id}))))
+    //             } else {
+    //                 Ok((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"detail": "failed to set token in redis client"}))))
+    //             }
+    //         },
+
+    //         Err(err) => {
+    //             let error_boundary = error_boundary.insert(String::from("failed to get user"));
+
+    //             Err(error_boundary.send_error())
+    //         }
+    //     }
+    // }
+
+    // юзер перехоит по ссылке из почты, открывается страница с восстановлением пароля // password, confirm_password
+    // меняем пароль в бд
 
     #[utoipa::path(
         get,

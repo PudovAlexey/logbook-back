@@ -43,7 +43,7 @@ async fn main() -> Result<(), std::io::Error> {
     let api_host = ENV::new().APP_HOST;
     let app_port: u16 = ENV::new().APP_PORT;
 
-    let shared_connection_pool = db::create_shared_connection_pool(db_url, 1);
+    let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
     let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await?;
 

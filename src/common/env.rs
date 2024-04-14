@@ -3,6 +3,7 @@ use std::net::Ipv4Addr;
 use crate::common::load_env_variable::load_env_variable;
 
 pub struct ENV {
+   pub APP_PROTOCOL: String, 
    pub APP_HOST: Ipv4Addr,
    pub DATABASE_URL: String,
    pub JWT_ACCESS_SECRET: String,
@@ -30,6 +31,7 @@ impl ENV {
             SMTP_PASSWORD: load_env_variable("SMTP_PASSWORD"),
             SMTP_TRANSPORT: load_env_variable("SMTP_TRANSPORT"),
             REDIS_PORT: load_env_variable("REDIS_PORT"),
+            APP_PROTOCOL: load_env_variable("APP_PROTOCOL"),
         }
     }
 }

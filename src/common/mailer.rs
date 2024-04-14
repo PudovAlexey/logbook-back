@@ -20,9 +20,9 @@ impl Mailer {
             body: params.body,
         }
     }
-   pub fn send(&self) {
+   pub fn send(&self) -> Result<String, String> {
         let email =  Message::builder()
-            .from("pudo.aleksej177@gmail.com".parse().unwrap())
+            .from(ENV::new().SMTP_USERNAME.parse().unwrap())
             // .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
             .to(self.to.parse().unwrap())
             .subject(self.body.clone())
@@ -38,8 +38,11 @@ impl Mailer {
             .build();
 
             match mailer.send(&email) {
-                Ok(_) => println!("Email sent successfully!"),
-                Err(e) => panic!("Could not send email: {e:?}"),
+                Ok(_) => Ok(String::from("Email sent successfully!")),
+                Err(e) => {
+                    println!("{}", e);
+                    Err(String::from("error"))
+                },
             }   
     }
 }

@@ -1,5 +1,6 @@
 pub mod service {
     use crate::common::redis::Redis;
+    use crate::users::model::ResetUserPassword;
     use crate::{users::model::USER};
     use argon2::{
         password_hash::{SaltString}, Argon2, PasswordHasher,
@@ -40,10 +41,10 @@ pub mod service {
         pub fn get_user_by_email(&mut self, user_email: String) -> Result<USER, diesel::result::Error> {
             let query = users.filter(email.eq(user_email));
 
-            Ok(query
+            query
                 .select(USER::as_select())
                 .first(&mut self.connection)
-                .expect("error to loading Logbook"))
+                
         }
 
         pub fn register_user_handler(
@@ -143,6 +144,39 @@ pub mod service {
 
                Err(error)
             }
+        }
+
+        pub fn reset_user_password(&mut self, params: ResetUserPassword) -> Result<uuid::Uuid, Error> {
+            let existing_user = self.get_user_by_id(params.user_id);
+            let salt = SaltString::generate(&mut OsRng);
+
+            let hashed_password = Argon2::default()
+            .hash_password(params.password.as_bytes(), &salt)
+            .map_err(|e| {
+                let _eror_response = serde_json::json!({
+                    "status": "fail",
+                    "message": format!("Error while hashing password: {}", e)
+                });
+            })
+            .map(|hash| hash.to_string());
+
+            if existing_user.is_ok() {
+                let update = diesel::update(users)
+                .filter(id.eq(params.user_id))
+                .set((
+                    password.eq(hashed_password.unwrap())
+                ))
+                .returning(id)
+                .get_result(&mut self.connection)
+                .expect("Failed to delete user");
+
+            Ok(update)
+            } else {
+                let error =  existing_user.unwrap_err();
+
+                Err(error)
+            }
+
         }
 
         pub fn remove_user_by_id(&mut self, user_id: uuid::Uuid) -> Result<uuid::Uuid, Error> {
