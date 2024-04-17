@@ -198,5 +198,15 @@ pub mod service {
             }
 
         }
+
+        pub fn remove_un_verified_users(&mut self) -> Result<Vec<uuid::Uuid>, Error> {
+           let res = diesel::delete(users)
+            .filter(is_verified.eq(false))
+            .returning(id)
+            .load::<uuid::Uuid>(&mut self.connection);
+
+
+            res
+        }
     }
 }

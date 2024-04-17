@@ -52,7 +52,7 @@ pub mod router {
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
                 "/register/verify/:id",
-                axum::routing::get(verify_user_handler),
+                axum::routing::post(verify_user_handler),
             )
             .route("/login", axum::routing::post(login_user_handler))
             .route(
@@ -81,6 +81,12 @@ pub mod router {
 
         let varify_password = body.clone().password_verify();
 
+        if !body.clone().compare_password() {
+         return Err((StatusCode::UNPROCESSABLE_ENTITY, 
+            Json(json!({"detail": "werify password is incompatible"})),
+        ));   
+        }
+
         if verify_email.is_err() {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -100,20 +106,17 @@ pub mod router {
         let email = body.email.clone();
 
         let salt = SaltString::generate(&mut OsRng);
-        let hashed_email = Argon2::default()
-            .hash_password(body.email.as_bytes(), &salt)
-            .map_err(|e| println!("faliled to generate hashing pass"))
-            .map(|hash| hash.to_string())
-            .unwrap()
-            .replace("/", ".");
 
-        let hashed_key = format!("verify.{}", hashed_email);
+        let mut rng = rand::thread_rng();
+        let random_number: u32 = rng.gen_range(100000..999999);
 
+        
         match UserTable::new(conntection).register_user_handler(body) {
             Ok(id) => {
+
                 let expires_token = Redis::new().set_expire_item(SetExpireItem {
-                    key: hashed_key.clone(),
-                    value: id.to_string(),
+                    key: format!("verify={}", {&id}),
+                    value: random_number,
                     expires: 3600,
                 });
 
@@ -122,20 +125,11 @@ pub mod router {
                        header: ContentType::TEXT_HTML,
                        to: email.to_string(),
                        subject: "New subject".to_string(),
-                    //    ENV::new().APP_PROTOCOL , ENV::new().APP_HOST , hashed_key, ENV::new().APP_HOST ,hashed_key
-                       body: format!("go to link for complete registration <a href=\"{}{}:{}/register/verify/{}\">{}{}:{}/register/verify/{}</a>",
-                       ENV::new().APP_PROTOCOL,
-                       ENV::new().APP_HOST,
-                       ENV::new().APP_PORT,
-                       hashed_key,
-                       
-                       ENV::new().APP_PROTOCOL,
-                       ENV::new().APP_HOST,
-                       ENV::new().APP_PORT,
-                       hashed_key
-                    )
-                   });
+                       body: format!("your code is <span>{}</span>", {random_number})
+                });
+
                     mailer.send();
+
                     Ok((StatusCode::OK, Json(json!({"test": id}))))
                 } else {
                     return Err((
@@ -159,8 +153,9 @@ pub mod router {
     }
 
     #[utoipa::path(
-        get,
+        post,
         path = "/register/verify/{id}",
+        request_body = VerifyUserCode,
         params(
             ("id" = i32, Path, description="Element id")
         ),
@@ -169,13 +164,16 @@ pub mod router {
     pub async fn verify_user_handler(
         State(shared_state): State<ConnectionPool>,
         Path(id): Path<String>,
+        Json(body): Json<VerifyUserCode>,
+
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
-        let claims_user_id = Redis::new().get_item(id.clone());
+        let claims_user_id = Redis::new().get_item(format!("verify={}", id));
 
-        match claims_user_id {
-            Ok(user_id) => {
-                let uuid = uuid::Uuid::parse_str(&user_id).unwrap();
+        if claims_user_id.is_ok() {
+               let mail_code: i32 = claims_user_id.unwrap().parse().expect("not a number");
+               if mail_code == body.verify_code {
+                let uuid = uuid::Uuid::parse_str(&id).unwrap();
 
                 match UserTable::new(connection).user_verify(uuid) {
                     Ok(user) => {
@@ -184,14 +182,48 @@ pub mod router {
                     }
                     Err(_) => Ok((StatusCode::OK, Json(json!({"test": "test"})))),
                 }
-            }
-            Err(_) => {
+               } else {
                 return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"detail": "email code is incorrect. Please try again"})),
+                ))
+               }
+        } else {
+                           return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"detail": "failed to verify user"})),
                 ))
-            }
         }
+
+        // match claims_user_id {
+        //     Ok(user_id) => {
+        //         let mail_code: i32 = user_id.parse().expect("not a number");
+        //         println!("{:?}", mail_code);
+
+        //        if mail_code == body.verify_code {
+        //         let uuid = uuid::Uuid::parse_str(&user_id).unwrap();
+
+        //         match UserTable::new(connection).user_verify(uuid) {
+        //             Ok(user) => {
+        //                 Redis::new().remove_item(id);
+        //                 Ok((StatusCode::OK, Json(json!({"data": user}))))
+        //             }
+        //             Err(_) => Ok((StatusCode::OK, Json(json!({"test": "test"})))),
+        //         }
+        //        } else {
+        //         return Err((
+        //             StatusCode::INTERNAL_SERVER_ERROR,
+        //             Json(json!({"detail": "email code is incorrect. Please try again"})),
+        //         ))
+        //        }
+        //     }
+        //     Err(_) => {
+        //         return Err((
+        //             StatusCode::INTERNAL_SERVER_ERROR,
+        //             Json(json!({"detail": "failed to verify user"})),
+        //         ))
+        //     }
+        // }
     }
 
     #[utoipa::path(
@@ -368,7 +400,7 @@ pub mod router {
         simple_error.send(res)
     }
 
-    use crate::users::model::{ForgotPassword, ResetPassword, ResetUserPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo};
+    use crate::users::model::{ForgotPassword, ResetPassword, ResetUserPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo, VerifyUserCode};
     use std::env;
     use std::fs::DirBuilder;
     use std::fs::File;
@@ -454,13 +486,21 @@ pub mod router {
         Path(email): Path<String>,
         State(shared_state): State<ConnectionPool>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let mut error_boundary = ErrorBoundary::SimpleError::new();
+
+        let can_try_again = Redis::new().get_item(String::from("verification_handler_expire"));
+
+        if can_try_again.is_ok() {
+            error_boundary = error_boundary.insert(String::from("request verification not expires yet"));
+    
+           return Err(error_boundary.send_error())   
+        }
 
         match UserTable::new(connection).get_user_by_email(email.clone()) {
             Ok(user) => {
                 let mut rng = rand::thread_rng();
-                // let random_number: u32 = rng.gen_range(100000, 999999);
                 let random_number: u32 = rng.gen_range(100000..999999);
 
                 let expires_token = Redis::new().set_expire_item(SetExpireItem {
@@ -481,7 +521,17 @@ pub mod router {
                   let res = mailer.send();
     
                     if res.is_ok() {
-                        Ok((StatusCode::OK, Json(json!({"data": res.unwrap()}))))
+                        let allow_try_again_time = 60;
+
+                        Redis::new().set_expire_item(SetExpireItem {
+                            key: String::from("verification_handler_expire"),
+                            value: true,
+                            expires: allow_try_again_time
+                        });
+
+                        Ok((StatusCode::OK, Json(json!({"data": {
+                            "timer": allow_try_again_time
+                        }}))))
                     } else {
                         error_boundary = error_boundary.insert(String::from("failed to send message"));
     
@@ -552,8 +602,6 @@ pub mod router {
                                                 description: String::from("password is not compared with")
                                             }
                                         });   
-                                    } else {
-                                        println!("success")
                                     }
 
                             } else {

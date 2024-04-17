@@ -24,6 +24,7 @@ pub mod apiDoc {
             users::router::router::health_checker_handler,
             users::router::router::request_verification_code,
             users::router::router::reset_password_handler,
+            users::router::router::remove_accaunt_handler,
         ),
         components(
             schemas(logbook::model::LogInfo),
@@ -32,6 +33,7 @@ pub mod apiDoc {
             schemas(users::model::CreateUserHandlerQUERY),
             schemas(users::model::LoginUser),
             schemas(users::model::ResetPassword),
+            schemas(users::model::VerifyUserCode),
             schemas(images::model::CreateImageQuery),
         ),
         modifiers(&SecurityAddon),

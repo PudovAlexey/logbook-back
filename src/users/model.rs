@@ -44,6 +44,11 @@ pub struct USER {
  pub avatar_id: Option<i32>,
 }
 
+pub struct ComparePassword<T> {
+   pub user: T,
+   pub confirmPassword: String
+}
+
 #[derive(ToSchema, Debug)]
 pub struct CreateUserHandler {
     pub email: String,
@@ -66,6 +71,14 @@ pub struct CreateUserHandlerQUERY {
     pub patronymic: Option<String>,
     pub date_of_birth: NaiveDateTime,
     pub password: String,
+    pub confirm_password: String
+}
+
+impl CreateUserHandlerQUERY {
+    pub fn compare_password(self) -> bool {
+        
+        self.password == self.confirm_password
+    }
 }
 
 impl From<CreateUserHandlerQUERY> for CreateUserHandler {
@@ -212,4 +225,9 @@ impl ResetPassword {
 pub struct ResetUserPassword {
     pub user_id: uuid::Uuid,
     pub password: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct VerifyUserCode {
+    pub verify_code: i32,
 }

@@ -4,6 +4,7 @@ pub mod apiDoc;
 pub mod users;
 pub mod common;
 pub mod images;
+use tokio::time::{self, Duration};
 
 use crate::common::env::ENV;
 
@@ -36,8 +37,13 @@ use logbook::router::{self as logbook_routes};
 
 use tower_http::services::fs::ServeDir;
 
+async fn periodic_task() {
+    // Ваша функция, которая будет вызываться каждый определенный интервал времени
+    println!("Выполняется периодическая задача");
+}
+
 #[tokio::main]
-async fn main() -> Result<(), std::io::Error> {
+async fn main() {
     let _port = ENV::new().APP_HOST;
     let db_url = ENV::new().DATABASE_URL;
     let api_host = ENV::new().APP_HOST;
@@ -45,7 +51,7 @@ async fn main() -> Result<(), std::io::Error> {
 
     let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
     let address = SocketAddr::from((api_host, app_port));
-    let listener = TcpListener::bind(&address).await?;
+    let listener = TcpListener::bind(&address).await;
 
 
     let app = Router::new()
@@ -59,7 +65,22 @@ async fn main() -> Result<(), std::io::Error> {
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
-    axum::serve(listener, app.into_make_service()).await
+    let interval = Duration::from_secs(10);
+
+    let periodic_task_handle = tokio::spawn(async move {
+        loop {
+            common::runtime_scheduler::runtime_scheduler().await;
+            // // Вызываем задачу
+            // periodic_task().await;
+
+            // // Ждем до следующего интервала времени
+            // time::sleep(interval).await;
+        }
+    });
+
+axum::serve(listener.unwrap(), app.into_make_service()).await;
+periodic_task_handle.await.expect("Failed to run periodic task");
+// common::runtime_scheduler::runtime_scheduler().await;
 }
 
 // use std::fs::{
