@@ -1,4 +1,11 @@
+use diesel::{
+    prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, PgConnection
+};
+
+type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
+
+
 use crate::users::user_runtime_scheduler::user_runtime_scheduler;
-pub async fn runtime_scheduler() {
-    user_runtime_scheduler().await;
+pub async fn runtime_scheduler(connection: PooledPg) {
+    user_runtime_scheduler(connection).await;
 }

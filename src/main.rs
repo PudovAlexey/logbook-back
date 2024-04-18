@@ -69,7 +69,7 @@ async fn main() {
 
     let periodic_task_handle = tokio::spawn(async move {
         loop {
-            common::runtime_scheduler::runtime_scheduler().await;
+            common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().expect("failed to resolve connection pull")).await;
             // // Вызываем задачу
             // periodic_task().await;
 

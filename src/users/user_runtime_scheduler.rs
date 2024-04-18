@@ -1,15 +1,26 @@
+use diesel::{
+  r2d2::{ConnectionManager, PooledConnection}, PgConnection
+};
+
+use crate::users::service::service::UserTable;
+
+type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
+
+
 use tokio::time::{self, Duration};
 
-pub async fn user_runtime_scheduler() {
-    async fn periodic_task() {
+pub async fn user_runtime_scheduler(connection: PooledPg) {
+    async fn periodic_task(connection: PooledPg) {
         // Ваша функция, которая будет вызываться каждый определенный интервал времени
         println!("Выполняется периодическая задача в user_runtime");
+
+        UserTable::new(connection).remove_un_verified_users();
     }
 
     
     
-    let interval = Duration::from_secs(2);
-  periodic_task().await;
+    let interval = Duration::from_secs(86400);
+  periodic_task(connection).await;
 
   time::sleep(interval).await;
 
