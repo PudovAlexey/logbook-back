@@ -41,5 +41,5 @@ native-tls = "0.2.11"
 lettre_email = "0.9.4"
 
 [[bin]]
-name = "axum_api_with_auth"
+name = "logbook-app-back"
 path = "src/main.rs"
