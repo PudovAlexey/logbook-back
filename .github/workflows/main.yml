@@ -12,11 +12,11 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Login to GitHub Container Registry
-        uses: ghcr/ghcr-auth@v1
-        with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Login to GitHub Container Registry
+      #   uses: ghcr/ghcr-auth@v2
+      #   with:
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
