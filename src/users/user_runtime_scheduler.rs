@@ -11,9 +11,6 @@ use tokio::time::{self, Duration};
 
 pub async fn user_runtime_scheduler(connection: PooledPg) {
     async fn periodic_task(connection: PooledPg) {
-        // Ваша функция, которая будет вызываться каждый определенный интервал времени
-        println!("Выполняется периодическая задача в user_runtime");
-
         UserTable::new(connection).remove_un_verified_users();
     }
 

@@ -130,7 +130,7 @@ pub mod router {
 
                     mailer.send();
 
-                    Ok((StatusCode::OK, Json(json!({"test": id}))))
+                    Ok((StatusCode::OK, Json(json!({"data": id}))))
                 } else {
                     return Err((
                         StatusCode::INTERNAL_SERVER_ERROR,
