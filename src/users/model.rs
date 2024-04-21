@@ -1,38 +1,36 @@
-use std::fmt::{self};
-use chrono::NaiveDateTime;
-use regex::Regex;
+use axum::Json;
+use chrono::{NaiveDateTime, Utc};
 use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
+use http::StatusCode;
+use regex::Regex;
+use crate::{common::validators::{
+    validate_email,
+    validate_password,
+}, schema::users::{is_verified, password}};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::schema;
+use serde_json::{json, Value};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum UserRole {
-    ADMIN,
+
+enum UserRole {
     USER,
+    ADMIN,
 }
 
-impl fmt::Display for UserRole {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            UserRole::ADMIN => write!(f, "ADMIN"),
-            UserRole::USER => write!(f, "USER"),
+impl UserRole {
+    fn new(role: UserRole) -> String {
+        match role {
+            UserRole::ADMIN => String::from("ADMIN"),
+            UserRole::USER => String::from("USER")
         }
     }
 }
 
-pub fn string_to_user_role(role: String) -> UserRole {
-    match role.as_str() {
-        "ADMIN" => UserRole::ADMIN,
-        "USER" => UserRole::USER,
-        _ => UserRole::USER,
-    }
-}
-#[derive(Serialize, Insertable, Debug, Selectable, Queryable, ToSchema, Clone)]
+#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema, Clone)]
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct USER {
- pub id: i32,
+ pub id: uuid::Uuid,
  pub email: String,
  pub name: String,
  pub surname: Option<String>,
@@ -42,32 +40,194 @@ pub struct USER {
  pub updated_at: NaiveDateTime,
  pub date_of_birth: NaiveDateTime,
  pub password: String,
+ pub is_verified: bool,
+ pub avatar_id: Option<i32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct LoginUser {
-    pub email: String,
-    pub password: String,
+pub struct ComparePassword<T> {
+   pub user: T,
+   pub confirmPassword: String
 }
-pub struct UpsertUser {
+
+#[derive(ToSchema, Debug)]
+pub struct CreateUserHandler {
     pub email: String,
-    pub password: String,
-    pub fullname: String,
+    pub name: String,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
     pub role: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub date_of_birth: NaiveDateTime,
+    pub password: String,
+    pub is_verified: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
-    pub sub: String,
-    pub exp: i64,
-    pub role: UserRole,
+#[derive(ToSchema, Debug, Serialize, Deserialize, Clone)]
+pub struct CreateUserHandlerQUERY {
+    pub email: String,
+    pub name: String,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub date_of_birth: NaiveDateTime,
+    pub password: String,
+    pub confirm_password: String
 }
 
-
-impl UpsertUser {
-    pub fn is_valid_email(&self) -> bool {
-        let email_pattern = Regex::new(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").unwrap();
-
-        email_pattern.is_match(&self.email)
+impl CreateUserHandlerQUERY {
+    pub fn compare_password(self) -> bool {
+        
+        self.password == self.confirm_password
     }
+}
+
+impl From<CreateUserHandlerQUERY> for CreateUserHandler {
+    fn from(value: CreateUserHandlerQUERY) -> Self {
+        CreateUserHandler {
+            email: value.email,
+            name: value.name,
+            surname: value.surname,
+            patronymic: value.patronymic,
+            date_of_birth: value.date_of_birth,
+            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now().naive_utc(),
+            is_verified: false,
+            password: value.password,
+            role: UserRole::new(UserRole::USER),
+        }
+    }
+}
+
+impl CreateUserHandlerQUERY {
+    pub fn password_verify(self) -> Result<String, String> {
+        validate_password(self.password)
+
+
+    }
+
+    pub fn email_verify(self) -> Result<String, String> {
+        validate_email(self.email)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenClaims {
+    pub sub: String,
+    pub iat: usize,
+    pub exp: usize
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct LoginUser {
+   pub email: String,
+   pub password: String
+}
+
+impl LoginUser {
+    pub fn password_verify(self) -> Result<String, String> {
+        validate_password(self.password)
+
+
+    }
+
+    pub fn email_verify(self) -> Result<String, String> {
+        validate_email(self.email)
+    }
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct UserRemoveSensitiveInfo {
+    pub id: uuid::Uuid,
+    pub email: String,
+    pub name: String,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub date_of_birth: NaiveDateTime,
+    pub avatar_url: Option<String>,
+}
+
+impl From<USER> for UserRemoveSensitiveInfo {
+    fn from(value: USER) -> Self {
+        let USER { id, email, name, surname, patronymic, role, created_at, updated_at, date_of_birth, ..} = value;
+
+       return UserRemoveSensitiveInfo {
+            id,
+            email,
+            name,
+            surname,
+            patronymic,
+            role,
+            created_at,
+            updated_at,
+            date_of_birth,
+            avatar_url: None
+        }
+    }
+}
+
+pub struct UpdateUserData {
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: Option<String>,
+    pub updated_at: NaiveDateTime,
+    pub avatar_id: Option<i32>,
+}
+
+pub struct UpdateUserDataQuery {
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: Option<String>,
+    pub avatar_id: Option<i32>,
+}
+
+impl From<UpdateUserDataQuery> for UpdateUserData {
+    fn from(value: UpdateUserDataQuery) -> Self {
+        UpdateUserData {
+            email: value.email,
+            name: value.name,
+            surname: value.surname,
+            patronymic: value.patronymic,
+            role: value.role,
+            updated_at: Utc::now().naive_utc(),
+            avatar_id: value.avatar_id,
+        }
+    }
+}
+
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ForgotPassword {
+  pub email: String
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone)]
+pub struct ResetPassword {
+  pub secret_code: i32,  
+  pub password: String,
+  pub confirm_password: String,
+}
+
+impl ResetPassword {
+    pub fn compare(self) -> bool {
+        self.password == self.confirm_password
+    }
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Queryable)]
+pub struct ResetUserPassword {
+    pub user_id: uuid::Uuid,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct VerifyUserCode {
+    pub verify_code: i32,
 }

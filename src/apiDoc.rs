@@ -1,4 +1,5 @@
 pub mod apiDoc {
+    use axum;
     use utoipa::{
         OpenApi, 
         Modify,
@@ -7,6 +8,7 @@ pub mod apiDoc {
 
     use crate::logbook;
     use crate::users;
+    use crate::images;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -15,12 +17,24 @@ pub mod apiDoc {
             logbook::router::router::get_logbook_by_id,
             logbook::router::router::update_loginfo_handler,
             logbook::router::router::create_loginfo_handler,
-            users::router::router::login_user_handler
+
+            users::router::router::create_user_handler,
+            users::router::router::verify_user_handler,
+            users::router::router::login_user_handler,
+            users::router::router::health_checker_handler,
+            users::router::router::request_verification_code,
+            users::router::router::reset_password_handler,
+            users::router::router::remove_accaunt_handler,
         ),
         components(
             schemas(logbook::model::LogInfo),
             schemas(logbook::model::UpdateLogInfo),
             schemas(logbook::model::CreateLogInfo),
+            schemas(users::model::CreateUserHandlerQUERY),
+            schemas(users::model::LoginUser),
+            schemas(users::model::ResetPassword),
+            schemas(users::model::VerifyUserCode),
+            schemas(images::model::CreateImageQuery),
         ),
         modifiers(&SecurityAddon),
         tags(

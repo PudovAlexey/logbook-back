@@ -1,4 +1,5 @@
 pub mod router {
+    use crate::users::auth::auth;
 
     use axum::Json;
     use axum::{extract::State, response::IntoResponse, Router};
@@ -6,6 +7,7 @@ pub mod router {
     use serde_json::Value;
 
     use axum::extract::{Path, Query};
+    use axum::{middleware};
 
     use crate::logbook::model::{
         UpdateLogInfo,
@@ -21,8 +23,11 @@ pub mod router {
     use tokio::sync::Mutex;
 
     pub fn logbook_routes(shared_connection_pool: ConnectionPool) -> Router {
+        let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
-            .route("/log_info", axum::routing::get(get_logbook_list))
+            .route("/log_info", axum::routing::get(get_logbook_list)
+            .route_layer(auth_middleware)
+        )
             .route("/log_info/:id", axum::routing::get(get_logbook_by_id))
             .route("/log_info/:id", axum::routing::put(update_loginfo_handler))
             .route("/log_info/", axum::routing::post(create_loginfo_handler))
@@ -113,7 +118,7 @@ pub mod router {
                 Json(json!(updated_id)),
             ))
          }
-         Err(error) => {
+         Err(_error) => {
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"error": "Failed to read empire"})),
