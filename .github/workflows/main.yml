@@ -49,14 +49,14 @@ jobs:
           server: ${{ secrets.TIMWEB_HOST }}
           username: ${{ secrets.TIMWEB_USERNAME }}
           password: ${{ secrets.TIMWEB_PASSWORD }}
-          server-dir:  //здесь нужно указать папку вашего проекта на хостинге
-          script: |
-            ssh-keyscan -H ${{ secrets.TIMWEB_HOST }} >> ~/.ssh/known_hosts
-            git clone git@github.com:PudovAlexey/logbook-back.git /tmp/logbook-back
-            cd /tmp/logbook-back
-            docker-compose pull
-            docker-compose down
-            docker-compose up -d
+          server-dir:  /usr/app
+          # script: |
+          #   ssh-keyscan -H ${{ secrets.TIMWEB_HOST }} >> ~/.ssh/known_hosts
+          #   git clone git@github.com:PudovAlexey/logbook-back.git /tmp/logbook-back
+          #   cd /tmp/logbook-back
+          #   docker-compose pull
+          #   docker-compose down
+          #   docker-compose up -d
 
 # name: Deploy on hosy
 
