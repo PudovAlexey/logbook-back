@@ -37,21 +37,21 @@ use logbook::router::{self as logbook_routes};
 
 use tower_http::services::fs::ServeDir;
 
-async fn periodic_task() {
-    // Ваша функция, которая будет вызываться каждый определенный интервал времени
-    println!("Выполняется периодическая задача");
-}
-
 #[tokio::main]
 async fn main() {
+    println!("app runs");
     let _port = ENV::new().APP_HOST;
     let db_url = ENV::new().DATABASE_URL;
     let api_host = ENV::new().APP_HOST;
     let app_port: u16 = ENV::new().APP_PORT;
 
+    println!("app env");
+
     let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
     let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await;
+
+    println!("app connection pool");
 
 
     let app = Router::new()
@@ -65,21 +65,24 @@ async fn main() {
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
-    let interval = Duration::from_secs(10);
+    println!("app listening in {:?}", listener);
 
-    let periodic_task_handle = tokio::spawn(async move {
-        loop {
-            common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().expect("failed to resolve connection pull")).await;
-            // // Вызываем задачу
-            // periodic_task().await;
+    // let interval = Duration::from_secs(10);
 
-            // // Ждем до следующего интервала времени
-            // time::sleep(interval).await;
-        }
-    });
+    // let periodic_task_handle = tokio::spawn(async move {
+    //     loop {
+    //         common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().expect("failed to resolve connection pull")).await;
+    //         // // Вызываем задачу
+    //         // periodic_task().await;
 
-axum::serve(listener.unwrap(), app.into_make_service()).await;
-periodic_task_handle.await.expect("Failed to run periodic task");
+    //         // // Ждем до следующего интервала времени
+    //         // time::sleep(interval).await;
+    //     }
+    // });
+
+let res = axum::serve(listener.unwrap(), app.into_make_service()).await;
+println!("{:?}", res);
+// periodic_task_handle.await.expect("Failed to run periodic task");
 // common::runtime_scheduler::runtime_scheduler().await;
 }
 

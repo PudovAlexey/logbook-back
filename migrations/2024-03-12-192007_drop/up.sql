@@ -1,2 +1,5 @@
 ALTER TABLE users
+ ADD COLUMN id_new UUID;
+
+ALTER TABLE users
 DROP COLUMN id_new;

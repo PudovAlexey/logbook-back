@@ -1,11 +1,15 @@
-FROM rust:1.67
+FROM rust:1.75.0
 
 WORKDIR /app
-EXPOSE 3003
 
 COPY . .
 
-RUN make release
+RUN cargo build --release
 
-EXPOSE 8081
+RUN cargo install diesel_cli --no-default-features --features "postgres"
 
+WORKDIR /app/target/release
+
+CMD ["diesel", "migration", "run"]
+
+ENTRYPOINT ["./logbook-app-back"]
