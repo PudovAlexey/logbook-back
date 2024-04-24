@@ -27,12 +27,29 @@ jobs:
           docker-compose build
           docker-compose push
 
-      - name: SSH Deploy to Timeweb
-        uses: appleboy/ssh-action@master
+      # - name: SSH Deploy to Timeweb
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.TIMWEB_HOST }}
+      #     username: ${{ secrets.TIMWEB_USERNAME }}
+      #     key: ${{ secrets.TIMWEB_SSH_KEY }}
+      #     script: |
+      #       ssh-keyscan -H ${{ secrets.TIMWEB_HOST }} >> ~/.ssh/known_hosts
+      #       git clone git@github.com:PudovAlexey/logbook-back.git /tmp/logbook-back
+      #       cd /tmp/logbook-back
+      #       docker-compose pull
+      #       docker-compose down
+      #       docker-compose up -d
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Deploy to Hosting
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
         with:
-          host: ${{ secrets.TIMWEB_HOST }}
+          server: ${{ secrets.TIMWEB_HOST }}
           username: ${{ secrets.TIMWEB_USERNAME }}
-          key: ${{ secrets.TIMWEB_SSH_KEY }}
+          password: ${{ secrets.TIMWEB_PASSWORD }}
+          server-dir:  //здесь нужно указать папку вашего проекта на хостинге
           script: |
             ssh-keyscan -H ${{ secrets.TIMWEB_HOST }} >> ~/.ssh/known_hosts
             git clone git@github.com:PudovAlexey/logbook-back.git /tmp/logbook-back
