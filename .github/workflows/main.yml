@@ -3,7 +3,7 @@ name: Deploy Docker Compose to Timeweb
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
