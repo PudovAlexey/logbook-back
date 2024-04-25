@@ -27,18 +27,27 @@ jobs:
           docker-compose build
           docker-compose push
 
-      - name: echo Timeweb
-        uses: appleboy/ssh-action@master
-        with:
-          host: 37.77.104.138
-          username: root
-          key: ssh root@37.77.104.138
-          password: wmoXot5m6,*4G*
-          script:
-            ssh-keyscan -H 37.77.104.138 >> ~/.ssh/known_hosts
-            echo "hello world"
-            git clone git@github.com:PudovAlexey/logbook-back.git /tmp/logbook-back
-            cd /tmp/logbook-back
-            docker-compose pull
-            docker-compose down
-            docker-compose up -d
+      - name: Configure SSH
+        env:
+          SSH_USER: ${{ secrets.TIMWEB_USERNAME }}
+          SSH_HOST: ${{ secrets.TIMWEB_HOST }}
+          SSH_KEY: ${{ secrets.TIMWEB_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/server.key
+          chmod 600 ~/.ssh/server.key
+          cat >>~/.ssh/config <<END
+          Host server
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/server.key
+            StrictHostKeyChecking no
+          END
+
+      - name: Running deploy script
+        run: ssh server '
+            cd logbook-back
+            && docker-compose pull
+            && docker-compose down
+            && docker-compose up -d
+          '
