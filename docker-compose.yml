@@ -19,7 +19,6 @@ services:
       - "8080:8080"
     depends_on:
       - db
-    image: aleksej177/logbook  
     environment:
       DATABASE_URL: postgres://postgres:postgres@db/logbook
       POSTGRES_DB: logbook
