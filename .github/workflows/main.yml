@@ -6,10 +6,13 @@ on:
       - master
 
 jobs:
-  deploy:
+  my_build_job:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: echo Timeweb
         uses: appleboy/ssh-action@master
         with:
