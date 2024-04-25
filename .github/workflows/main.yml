@@ -13,6 +13,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: pudo-aleksej@yandex.ru
+          password: Laborador1478
+
+      - name: Build and push Docker images
+        run: |
+          docker-compose build
+          docker-compose push
+
       - name: echo Timeweb
         uses: appleboy/ssh-action@master
         with:
@@ -23,3 +37,8 @@ jobs:
           script:
             ssh-keyscan -H 37.77.104.138 >> ~/.ssh/known_hosts
             echo "hello world"
+            git clone git@github.com:PudovAlexey/logbook-back.git /tmp/logbook-back
+            cd /tmp/logbook-back
+            docker-compose pull
+            docker-compose down
+            docker-compose up -d
