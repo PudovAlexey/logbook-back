@@ -65,7 +65,7 @@ async fn main() {
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
-    println!( {:?}", listener);
+    println!("{:?}", listener);
 
     // let interval = Duration::from_secs(10);
 
