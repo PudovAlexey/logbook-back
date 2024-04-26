@@ -47,7 +47,7 @@ async fn main() {
 
     println!("app env");
 
-    let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
+    // let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
     let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await;
 
@@ -60,8 +60,8 @@ async fn main() {
 
     .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
-    .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
-    .merge(users::router::router::user_routes(shared_connection_pool.clone()))
+    // .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
+    // .merge(users::router::router::user_routes(shared_connection_pool.clone()))
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
