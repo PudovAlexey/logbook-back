@@ -8,9 +8,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "6543:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-      - ./pg_dump:/pg_dumb
+    # volumes:
+    #   - pg_data:/var/lib/postgresql/data
+    #   - ./pg_dump:/pg_dumb
 #   logbook:
 #     build: .
 #     volumes:
