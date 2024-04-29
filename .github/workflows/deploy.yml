@@ -19,8 +19,8 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: pudo-aleksej@yandex.ru
-          password: Laborador1478
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD}}
 
       - name: Build and push Docker images
         run: |
@@ -46,7 +46,9 @@ jobs:
 
       - name: Running deploy script
         run: ssh server '
-            cd logbook-back
+            rm -rf -f ~/logbook-back/*
+            && cd logbook-back
+            && git clone -b master git@github.com:PudovAlexey/logbook-back.git docker-compose.yml
             && docker pull aleksej177/logbook:latest
             && docker-compose down
             && docker-compose up -d
