@@ -51,7 +51,7 @@ pub mod router {
             .route("/refresh-tokens", axum::routing::post(health_checker_handler))
             .route("/register/", axum::routing::post(create_user_handler))
             .route(
-                "/register/verify/:id",
+                "/register/verify/:user_id",
                 axum::routing::post(verify_user_handler),
             )
             .route("/login", axum::routing::post(login_user_handler))
@@ -154,30 +154,30 @@ pub mod router {
 
     #[utoipa::path(
         post,
-        path = "/register/verify/{id}",
+        path = "/register/verify/{user_id}",
         request_body = VerifyUserCode,
         params(
-            ("id" = i32, Path, description="Element id")
+            ("user_id" = i32, Path, description="Element id")
         ),
     )]
 
     pub async fn verify_user_handler(
         State(shared_state): State<ConnectionPool>,
-        Path(id): Path<String>,
+        Path(user_id): Path<String>,
         Json(body): Json<VerifyUserCode>,
 
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
-        let claims_user_id = Redis::new().get_item(format!("verify={}", id));
+        let claims_user_id = Redis::new().get_item(format!("verify={}", user_id));
 
         if claims_user_id.is_ok() {
                let mail_code: i32 = claims_user_id.unwrap().parse().expect("not a number");
                if mail_code == body.verify_code {
-                let uuid = uuid::Uuid::parse_str(&id).unwrap();
+                let uuid = uuid::Uuid::parse_str(&user_id).unwrap();
 
                 match UserTable::new(connection).user_verify(uuid) {
                     Ok(user) => {
-                        Redis::new().remove_item(id);
+                        Redis::new().remove_item(user_id);
                         Ok((StatusCode::OK, Json(json!({"data": user}))))
                     }
                     Err(_) => Ok((StatusCode::OK, Json(json!({"test": "test"})))),
