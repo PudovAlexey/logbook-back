@@ -46,10 +46,11 @@ jobs:
 
       - name: Running deploy script
         run: ssh server '
-            rm -rf -f ~/logbook-back/*
-            && cd logbook-back
-            && git clone -b master git@github.com:PudovAlexey/logbook-back.git docker-compose.yml
-            && docker pull aleksej177/logbook:latest
+            cd logbook-back
             && docker-compose down
+            && cd ..
+            && rm -rf logbook-back
+            && git clone git@github.com:PudovAlexey/logbook-back.git
+            && cd logbook-back
             && docker-compose up -d
           '
