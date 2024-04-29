@@ -47,6 +47,7 @@ jobs:
       - name: Running deploy script
         run: ssh server '
             cd logbook-back
+            && docker pull aleksej177/logbook:latest
             && docker-compose down
             && docker-compose up -d
           '
