@@ -71,5 +71,4 @@ WORKDIR /usr/local/bin
 
 CMD ["diesel", "migration", "run"]
 
-# CMD ["chmod", "+x", "logbook-app-back", "&&", "./logbook-app-back"]
 ENTRYPOINT [ "./logbook-app-back" ]
