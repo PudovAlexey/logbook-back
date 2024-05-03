@@ -22,15 +22,11 @@ use utoipa_redoc::{Redoc, Servable};
 use tokio::net::TcpListener;
 
 
-use std::{
-    net::{Ipv4Addr, SocketAddr},
-};
+use std::net::SocketAddr;
 
-use axum::{Router};
+use axum::Router;
 
-use crate:: {
-    common::db
-};
+use crate:: common::db;
 
 use logbook::router::{self as logbook_routes};
 
@@ -68,26 +64,5 @@ async fn main() {
 
 let res = axum::serve(listener.unwrap(), app.into_make_service()).await;
 println!("{:?}", res);
-// periodic_task_handle.await.expect("Failed to run periodic task");
 common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().unwrap()).await;
 }
-
-// use std::fs::{
-//     DirBuilder
-// };
-
-// use std::env;
-
-// fn main() {
-//     let current_dir = env::current_dir().unwrap();
-
-//     let path = "assets";
-
-//     let dir = current_dir.join(path);
-
-//     println!("{:?}", dir);
-
-// DirBuilder::new()
-//     .recursive(true)
-//     .create(dir).unwrap();   
-// }

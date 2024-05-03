@@ -164,9 +164,7 @@ pub mod service {
             if existing_user.is_ok() {
                 let update = diesel::update(users)
                 .filter(id.eq(params.user_id))
-                .set((
-                    password.eq(hashed_password.unwrap())
-                ))
+                .set(password.eq(hashed_password.unwrap()))
                 .returning(id)
                 .get_result(&mut self.connection)
                 .expect("Failed to delete user");
