@@ -108,12 +108,13 @@ pub mod service {
                 .expect("error to loading Logbook");
 
             if existing_user.is_some() {
-                diesel::update(users)
+             let updating_id =  diesel::update(users)
                     .filter(id.eq(user_id))
                     .set(is_verified.eq(true))
-                    .execute(&mut self.connection);
+                    .returning(id)
+                    .get_result(&mut self.connection)?;
 
-                Ok(user_id as uuid::Uuid)
+                Ok(updating_id)
             } else {
                 Err(diesel::result::Error::RollbackTransaction)
             }

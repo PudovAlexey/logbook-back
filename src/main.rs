@@ -4,7 +4,6 @@ pub mod apiDoc;
 pub mod users;
 pub mod common;
 pub mod images;
-use tokio::time::{self, Duration};
 
 use crate::common::env::ENV;
 
@@ -47,7 +46,7 @@ async fn main() {
 
     println!("app env");
 
-    // let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
+    let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
     let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await;
 
@@ -60,30 +59,17 @@ async fn main() {
 
     .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
-    // .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
-    // .merge(users::router::router::user_routes(shared_connection_pool.clone()))
+    .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
+    .merge(users::router::router::user_routes(shared_connection_pool.clone()))
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
     println!("{:?}", listener);
 
-    // let interval = Duration::from_secs(10);
-
-    // let periodic_task_handle = tokio::spawn(async move {
-    //     loop {
-    //         common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().expect("failed to resolve connection pull")).await;
-    //         // // Вызываем задачу
-    //         // periodic_task().await;
-
-    //         // // Ждем до следующего интервала времени
-    //         // time::sleep(interval).await;
-    //     }
-    // });
-
 let res = axum::serve(listener.unwrap(), app.into_make_service()).await;
 println!("{:?}", res);
 // periodic_task_handle.await.expect("Failed to run periodic task");
-// common::runtime_scheduler::runtime_scheduler().await;
+common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().unwrap()).await;
 }
 
 // use std::fs::{

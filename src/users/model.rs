@@ -1,15 +1,11 @@
-use axum::Json;
 use chrono::{NaiveDateTime, Utc};
 use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
-use http::StatusCode;
-use regex::Regex;
-use crate::{common::validators::{
-    validate_email,
-    validate_password,
-}, schema::users::{is_verified, password}};
+use crate::common::validators::{
+    validate_email::validate_email,
+    validate_password::validate_password,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use serde_json::{json, Value};
 
 
 enum UserRole {

@@ -1,6 +1,4 @@
-use self::ErrorBoundary::BoundaryHandlers;
-
-pub mod ErrorBoundary {
+pub mod error_boundary {
     use std::collections::HashMap;
 
     use axum::{response::IntoResponse, Json};
@@ -167,19 +165,4 @@ pub mod ErrorBoundary {
         (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
     }
     }
-}
-
-fn main() {
-    let mut err = ErrorBoundary::FieldArrayError::new();
-
-    err = err.insert(ErrorBoundary::InsertArrayFieldError {
-        index: ErrorBoundary::InsetWhere::Push,
-        value:  ErrorBoundary::InsertFieldError {
-            key: String::from("simple_key"),
-            value: ErrorBoundary::FieldError {
-                message: String::from("test"),
-                description: String::from("test")
-            }
-        }    
-    });
 }

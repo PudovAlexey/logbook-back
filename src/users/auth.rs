@@ -1,18 +1,15 @@
 use crate::common::{
     env::ENV,
-    error_boundary::{
-        self,
-        ErrorBoundary::{self, BoundaryHandlers},
-    },
+    error_boundary::
+        error_boundary::{self, BoundaryHandlers}
+    ,
 };
 use crate::users::model::TokenClaims;
 use crate::users::service::service::UserTable;
 use axum::{
-    Router,
-    http,
     extract::State,
     http::{header, StatusCode},
-    middleware::{self, Next},
+    middleware::Next,
     response::Response,
     extract::Request,
     Json,
@@ -35,7 +32,7 @@ pub async fn auth(
     req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let mut error_boundary = ErrorBoundary::SimpleError::new();
+    let mut error_boundary = error_boundary::SimpleError::new();
 
     let token = cookie_jar
         .get("access")

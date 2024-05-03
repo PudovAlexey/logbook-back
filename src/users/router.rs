@@ -1,33 +1,28 @@
 pub mod router {
     extern crate image;
-    use crate::common::{error_boundary, mailer};
-    use crate::common::error_boundary::ErrorBoundary::{self, BoundaryHandlers, FieldError, InsertFieldError};
+    use crate::common::error_boundary::error_boundary::{self, BoundaryHandlers, FieldError, InsertFieldError};
     use crate::common::jwt::{is_valid_token, remove_jwt_cookie, JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
-    use axum_extra::extract::CookieJar;
     extern crate rand;
     use rand::Rng;
     use serde::Deserialize;
-    use ::time::Duration;
     use argon2::PasswordVerifier;
     use axum::extract::{Path, Query, State};
-    use axum::{http::header, response::IntoResponse, response::Response, Json, Router};
-    use axum::{body, middleware};
-    use axum_extra::extract::cookie::{Cookie, SameSite};
+    use axum::{response::IntoResponse, response::Response, Json, Router};
+    use axum::middleware;
     use lettre::message::header::ContentType;
 
     use crate::users::auth::auth;
     use http::StatusCode;
     use serde_json::{json, Value};
 
-    use crate::common::env::ENV;
     use crate::common::mailer::Mailer;
 
     use rand_core::OsRng;
 
-    use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher};
+    use argon2::{password_hash::SaltString, Argon2, PasswordHash};
 
     use crate::users::service::service::UserTable;
 
@@ -38,6 +33,12 @@ pub mod router {
     use crate::images::service::service::ImagesTable;
 
     use crate::images::model::{CreateAvatarQuery, CreateImageQuery};
+
+    use crate::users::model::{ResetPassword, ResetUserPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo, VerifyUserCode};
+    use std::env;
+    use std::fs::DirBuilder;
+    use std::fs::File;
+    use std::io::prelude::*;
 
     #[derive(Deserialize)]
     struct RefreshTokenParams {
@@ -104,8 +105,6 @@ pub mod router {
         let conntection = shared_state.pool.get().expect("Failed connection to POOL");
 
         let email = body.email.clone();
-
-        let salt = SaltString::generate(&mut OsRng);
 
         let mut rng = rand::thread_rng();
         let random_number: u32 = rng.gen_range(100000..999999);
@@ -236,7 +235,7 @@ pub mod router {
         Json(body): Json<LoginUser>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
-        let mut error_boundary = ErrorBoundary::ObjectError::new();
+        let mut error_boundary = error_boundary::ObjectError::new();
 
         let validators = vec![body.clone().password_verify(), body.clone().email_verify()];
         let mut fire_error = false;
@@ -253,7 +252,7 @@ pub mod router {
                     1 => {
                         key.push_str("email")
                     }
-                    (_) => {}
+                    _ => {}
                 }
                 error_boundary = error_boundary.insert(InsertFieldError {
                     key,
@@ -312,7 +311,7 @@ pub mod router {
 
            avatar_url = match a {
                 Ok(data) => Some(data.path),
-                (_) => None
+                _ => None
             };
         }
         // todo
@@ -366,7 +365,7 @@ pub mod router {
         headers: HeaderMap
     ) -> impl IntoResponse {
         let mut res: Json<Value> = Json(json!({"data": "success"}));
-        let mut simple_error = ErrorBoundary::SimpleError::new();
+        let mut simple_error = error_boundary::SimpleError::new();
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
         let check_user = UserTable::new(connection)
@@ -400,11 +399,7 @@ pub mod router {
         simple_error.send(res)
     }
 
-    use crate::users::model::{ForgotPassword, ResetPassword, ResetUserPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo, VerifyUserCode};
-    use std::env;
-    use std::fs::DirBuilder;
-    use std::fs::File;
-    use std::io::prelude::*;
+
     pub async fn set_user_avatar(
         Path(id): Path<uuid::Uuid>,
         State(shared_state): State<ConnectionPool>,
@@ -453,7 +448,7 @@ pub mod router {
                     );
 
                     
-                    if (update_user.is_ok()) {
+                    if update_user.is_ok() {
                         Ok((StatusCode::OK, Json(json!({"data": update_user.unwrap()}))))
                         
                     }  else {
@@ -488,7 +483,7 @@ pub mod router {
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
-        let mut error_boundary = ErrorBoundary::SimpleError::new();
+        let mut error_boundary = error_boundary::SimpleError::new();
 
         let can_try_again = Redis::new().get_item(String::from("verification_handler_expire"));
 
@@ -571,7 +566,7 @@ pub mod router {
         
         match UserTable::new(connection).get_user_by_email(email.clone()) {
             Ok(user) => {
-                let mut error_boundary = ErrorBoundary::ObjectError::new();
+                let mut error_boundary = error_boundary::ObjectError::new();
 
                 if (body.clone().compare()) {
                     let secret_key = Redis::new().get_item(format!("change_password={}", {email}));
@@ -605,7 +600,7 @@ pub mod router {
                                     }
 
                             } else {
-                                let mut error_boundary = ErrorBoundary::SimpleError::new();
+                                let mut error_boundary = error_boundary::SimpleError::new();
 
                                 error_boundary = error_boundary.insert(String::from("password can't be like a same password"));
                 
@@ -649,7 +644,7 @@ pub mod router {
                 error_boundary.send(res)
             },
             Err(error) => {
-                let mut error_boundary = ErrorBoundary::SimpleError::new();
+                let mut error_boundary = error_boundary::SimpleError::new();
 
                 error_boundary = error_boundary.insert(String::from("failed to find user"));
 
@@ -666,7 +661,7 @@ pub mod router {
     // ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     //     let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
-    //     let error_boundary = ErrorBoundary::SimpleError::new();
+    //     let error_boundary = error_boundary::SimpleError::new();
 
     //     match UserTable::new(connection).get_user_by_email(body.email) {
     //         Ok(user) => {
@@ -736,7 +731,7 @@ pub mod router {
         Path(id): Path<uuid::Uuid>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
-        let errors = ErrorBoundary::SimpleError::new();
+        let errors = error_boundary::SimpleError::new();
 
         match UserTable::new(connection)
         .remove_user_by_id(id) {
