@@ -42,8 +42,6 @@ async fn main() {
     let address = SocketAddr::from((api_host, app_port));
     let listener = TcpListener::bind(&address).await;
 
-    println!("app connection pool");
-
 
     let app = Router::new()
     .nest_service("/assets", axum::routing::get_service(ServeDir::new("assets")
@@ -56,9 +54,7 @@ async fn main() {
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
-    println!("{:?}", listener);
-
 let res = axum::serve(listener.unwrap(), app.into_make_service()).await;
-println!("{:?}", res);
+println!("the server listening on {}{}:{}", ENV::new().app_protocol, ENV::new().app_host, ENV::new().app_port);
 common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().unwrap()).await;
 }
