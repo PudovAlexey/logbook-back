@@ -70,7 +70,7 @@ impl Redis {
     }
 
     pub fn new() -> Redis {
-        let client = redis::Client::open(env::ENV::new().REDIS_PORT)
+        let client = redis::Client::open(env::ENV::new().redis_port)
             .map_err(|e| e)
             .unwrap();
 

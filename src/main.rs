@@ -34,13 +34,9 @@ use tower_http::services::fs::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    println!("app runs");
-    let _port = ENV::new().APP_HOST;
-    let db_url = ENV::new().DATABASE_URL;
-    let api_host = ENV::new().APP_HOST;
-    let app_port: u16 = ENV::new().APP_PORT;
-
-    println!("app env");
+    let db_url = ENV::new().database_url;
+    let api_host = ENV::new().app_host;
+    let app_port: u16 = ENV::new().app_port;
 
     let shared_connection_pool = db::create_shared_connection_pool(db_url, 10);
     let address = SocketAddr::from((api_host, app_port));

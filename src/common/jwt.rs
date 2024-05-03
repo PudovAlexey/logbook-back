@@ -15,8 +15,8 @@ enum Token {
 impl Token {
     fn new(val: Token) -> String {
         match val {
-            Token::Access => ENV::new().JWT_ACCESS_SECRET,
-            Token::Refresh => ENV::new().JWT_REFRESH_SECRET,
+            Token::Access => ENV::new().jwt_access_secret,
+            Token::Refresh => ENV::new().jwt_refresh_secret,
         }        
     }
 }
@@ -52,14 +52,14 @@ impl JWTToken for JWT {
             
             let access = Cookie::build(format!("access={}", access_token.to_owned()))
             .path("/")
-            .max_age(Duration::minutes(ENV::new().JWT_ACCESS_EXPIRED_IN))
+            .max_age(Duration::minutes(ENV::new().jwt_access_expired_in))
             .same_site(SameSite::Lax)
             .http_only(true)
             .finish();  
 
             let refresh = Cookie::build(format!("refresh={}", refresh_token.to_owned()))
             .path("/")
-            .max_age(Duration::minutes(ENV::new().JWT_REFRESH_EXPIRED_IN))
+            .max_age(Duration::minutes(ENV::new().jwt_refresh_expired_in))
             .same_site(SameSite::Lax)
             .http_only(true)
             .finish();       
@@ -102,13 +102,13 @@ impl JWT {
   pub  fn new(user_id: uuid::Uuid) -> Self {
         let access_token = <JWT as self::JWTToken>::token_generate( TokenGenerate {
             user_id,
-            time: ENV::new().JWT_ACCESS_EXPIRED_IN,
+            time: ENV::new().jwt_access_expired_in,
             token_type: Token::new(Token::Access)
         });
 
         let refresh_token = <JWT as self::JWTToken>::token_generate(TokenGenerate {
             user_id,
-            time: ENV::new().JWT_REFRESH_EXPIRED_IN,
+            time: ENV::new().jwt_refresh_expired_in,
             token_type: Token::new(Token::Refresh)
         });
 
@@ -121,7 +121,7 @@ impl JWT {
 }
 
 pub fn is_valid_token(refresh_token: &str) -> bool {
-    let decoding_key = DecodingKey::from_secret(ENV::new().JWT_REFRESH_SECRET.as_ref()); // Замените на ваш секретный ключ
+    let decoding_key = DecodingKey::from_secret(ENV::new().jwt_refresh_secret.as_ref()); // Замените на ваш секретный ключ
     let validation = Validation::default();
 
     match decode::<TokenClaims>(&refresh_token, &decoding_key, &validation) {

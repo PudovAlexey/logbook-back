@@ -59,7 +59,7 @@ pub async fn auth(
     if token.is_some() {
         let claims = decode::<TokenClaims>(
             &token.unwrap(),
-            &DecodingKey::from_secret(ENV::new().JWT_ACCESS_SECRET.as_ref()),
+            &DecodingKey::from_secret(ENV::new().jwt_access_secret.as_ref()),
             &Validation::default(),
         );
 

@@ -22,7 +22,7 @@ impl Mailer {
     }
    pub fn send(&self) -> Result<String, String> {
         let email =  Message::builder()
-            .from(ENV::new().SMTP_USERNAME.parse().unwrap())
+            .from(ENV::new().smtp_username.parse().unwrap())
             // .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
             .to(self.to.parse().unwrap())
             .subject(self.body.clone())
@@ -30,9 +30,9 @@ impl Mailer {
             .body(self.body.clone())
             .unwrap();
 
-        let creds = Credentials::new(ENV::new().SMTP_USERNAME.to_owned(), ENV::new().SMTP_PASSWORD.to_owned());
+        let creds = Credentials::new(ENV::new().smtp_username.to_owned(), ENV::new().smtp_password.to_owned());
 
-        let mailer = SmtpTransport::relay(&ENV::new().SMTP_TRANSPORT)
+        let mailer = SmtpTransport::relay(&ENV::new().smtp_transport)
             .unwrap()
             .credentials(creds)
             .build();
