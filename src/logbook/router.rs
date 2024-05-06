@@ -1,12 +1,13 @@
 pub mod router {
     use crate::users::auth::auth;
+    use crate::users::model::USER;
 
     use axum::Json;
     use axum::{extract::State, response::IntoResponse, Router};
     use serde_json::json;
     use serde_json::Value;
 
-    use axum::extract::{Path, Query};
+    use axum::extract::{Path, Query, Extension};
     use axum::{middleware};
 
     use crate::logbook::model::{
@@ -15,7 +16,7 @@ pub mod router {
         LogInfo
     };
     use crate::logbook::service::service::{
-        GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table,
+        GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table, SearchLogsParams,
     };
 
     use crate::common::db::ConnectionPool;
@@ -48,15 +49,21 @@ pub mod router {
         )
     )]
     pub async fn get_logbook_list(
+        Extension(user): Extension<USER>,
         State(shared_state): State<ConnectionPool>,
-        Query(params): Query<GetLogbookListParams>,
+        Query(params): Query<SearchLogsParams>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
-        match log_info_table::new(connection).get_logbook_list(params) {
-            Ok(log_info) => Ok((StatusCode::OK, Json(json!({"data": &log_info})))),
+        match log_info_table::new(connection).get_logbook_list(GetLogbookListParams {
+            search_params: params,
+            user
+        }) {
+            Ok(log_info) => {
+                println!("{:?}",&log_info);
+                Ok((StatusCode::OK, Json(json!({"data": &log_info}))))
+            },
             Err(err) => {
-                eprintln!("Error reading empire: {:?}", err);
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"error": "Failed to read empire"})),

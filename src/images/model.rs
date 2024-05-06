@@ -1,6 +1,6 @@
 extern crate image;
 use chrono::{NaiveDateTime, Utc};
-use diesel::{associations::{Associations, Identifiable}, deserialize::Queryable, prelude::Insertable, Selectable};
+use diesel::{associations::Identifiable, deserialize::Queryable, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 

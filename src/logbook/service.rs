@@ -1,5 +1,5 @@
 pub mod service {
-    use crate::common::formatters::date;
+    use crate::{common::formatters::date, users::model::USER};
     
     use diesel::{
         prelude::*,
@@ -19,10 +19,17 @@ pub mod service {
     }
 
     #[derive(Deserialize, Debug)]
-    pub struct GetLogbookListParams {
+    pub struct SearchLogsParams {
         pub limit: Option<i64>,
         pub offset: Option<i64>,
         pub search_query: Option<String>,
+    }
+
+    #[derive(Deserialize, Debug)]
+
+    pub struct GetLogbookListParams {
+        pub search_params: SearchLogsParams,
+        pub user: USER
     }
 
     #[derive(Deserialize, Debug)]
@@ -39,15 +46,18 @@ pub mod service {
             &mut self,
             params: GetLogbookListParams,
         ) -> Result<Vec<model::LogInfo>, diesel::result::Error> {
-            let limit = params.limit.unwrap_or(-1);
-            let offset = params.offset.unwrap_or(-1);
-            let search_query = params.search_query.unwrap_or(String::from(""));
+            let SearchLogsParams {limit, offset, search_query} = params.search_params;
+            let USER {id: speciphic_id, ..} = params.user;
+
+            let limit = limit.unwrap_or(-1);
+            let offset = offset.unwrap_or(-1);
+            let search_query = search_query.unwrap_or(String::from(""));
 
             let mut query = loginfo.into_boxed();
 
             let test = date::date::make_timestamp_from_string("31.12.2023");
 
-            println!("timestamp {:?}", test);
+            query = query.filter(user_id.eq(speciphic_id));
 
             if limit >= 0 {
                 query = query.limit(limit);
