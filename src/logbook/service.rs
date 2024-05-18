@@ -45,7 +45,7 @@ pub mod service {
         pub fn get_logbook_list(
             &mut self,
             params: GetLogbookListParams,
-        ) -> Result<Vec<model::LogInfo>, diesel::result::Error> {
+        ) -> Result<Vec<model::RequiredSelectListItems>, diesel::result::Error> {
             let SearchLogsParams {limit, offset, search_query} = params.search_params;
             let USER {id: speciphic_id, ..} = params.user;
 
@@ -76,7 +76,7 @@ pub mod service {
             }
 
             Ok(query
-                .select(model::LogInfo::as_select())
+                .select(model::RequiredSelectListItems::as_select())
                 .load(&mut self.connection)
                 .expect("error to loading Logbook"))
         }

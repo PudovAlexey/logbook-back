@@ -63,3 +63,22 @@ pub struct AvatarInfo {
     pub path: String,
     pub filename: String,
 }
+
+#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema)]
+#[diesel(table_name = crate::schema::log_image)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct LogImage {
+  pub id: i32,
+  pub image_id: i32,
+  pub logbook_id: i32,
+}
+
+#[derive(Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+#[diesel(primary_key(id))]
+#[diesel(belongs_to(LogImage, foreign_key = image_id))]
+#[diesel(table_name = crate::schema::image)]
+pub struct LogImageInfo {
+  pub id: i32,
+  pub path: String,
+  pub filename: String,
+}

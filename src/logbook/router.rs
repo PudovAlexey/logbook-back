@@ -1,22 +1,26 @@
 pub mod router {
+
+    use crate::schema::avatar::image_id;
     use crate::users::auth::auth;
     use crate::users::model::USER;
 
+    use crate::images::service::service::ImagesTable;
     use axum::Json;
     use axum::{extract::State, response::IntoResponse, Router};
+    use diesel::expression::is_aggregate::No;
+    use diesel::ExpressionMethods;
     use serde_json::json;
     use serde_json::Value;
 
-    use axum::extract::{Path, Query, Extension};
-    use axum::{middleware};
+    use axum::extract::{Extension, Path, Query};
+    use axum::middleware;
 
     use crate::logbook::model::{
-        UpdateLogInfo,
-        CreateLogInfo,
-        LogInfo
+        CreateLogInfo, LogInfo, LogList, RequiredSelectListItems, UpdateLogInfo,
     };
     use crate::logbook::service::service::{
-        GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table, SearchLogsParams,
+        GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table,
+        SearchLogsParams,
     };
 
     use crate::common::db::ConnectionPool;
@@ -26,9 +30,10 @@ pub mod router {
     pub fn logbook_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
-            .route("/log_info", axum::routing::get(get_logbook_list)
-            .route_layer(auth_middleware)
-        )
+            .route(
+                "/log_info",
+                axum::routing::get(get_logbook_list).route_layer(auth_middleware),
+            )
             .route("/log_info/:id", axum::routing::get(get_logbook_by_id))
             .route("/log_info/:id", axum::routing::put(update_loginfo_handler))
             .route("/log_info/", axum::routing::post(create_loginfo_handler))
@@ -57,18 +62,92 @@ pub mod router {
 
         match log_info_table::new(connection).get_logbook_list(GetLogbookListParams {
             search_params: params,
-            user
+            user,
         }) {
             Ok(log_info) => {
-                println!("{:?}",&log_info);
-                Ok((StatusCode::OK, Json(json!({"data": &log_info}))))
-            },
-            Err(err) => {
-                Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": "Failed to read empire"})),
-                ))
+                let log_list: Vec<LogList> = log_info
+                    .iter()
+                    .map(| RequiredSelectListItems {
+                        id,
+                        title,
+                        description,
+                        start_datetime,
+                        image_id: other_image_id,
+                        ..
+                    }| {
+                        let connection =
+                            shared_state.pool.get().expect("Failed connection to POOL");
+                        // let &LogInfo {image_id, ..} = x;
+                        // let &RequiredSelectListItems {
+                        //     id,
+                        //     title,
+                        //     description,
+                        //     start_datetime,
+                        //     image_id: other_image_id,
+                        //     ..
+                        // } = x;
+
+                        let image = other_image_id;
+
+                        if image.is_none() {
+                            LogList {
+                                id: id.to_owned(),
+                                title: title.to_owned(),
+                                description: description.to_owned(),
+                                start_datetime: start_datetime.to_owned(),
+                                image_id: None,
+                                image_data: None,
+                            }
+                        } else {
+                            match ImagesTable::new(connection).get_log_image_data(image.unwrap()) {
+                                Ok(data) => {
+                                    //    LogList {
+                                    //         ..x
+                                    //         image_data: data,
+                                    //     }
+                                    LogList {
+                                        id: id.to_owned(),
+                                        title: title.to_owned(),
+                                        description: description.to_owned(),
+                                        start_datetime: start_datetime.to_owned(),
+                                        image_id: None,
+                                        image_data: Some(data),
+                                    }
+                                }
+                                Err(_error) => LogList {
+                                    id: id.to_owned(),
+                                    title: title.to_owned(),
+                                    description: description.to_owned(),
+                                    start_datetime: start_datetime.to_owned(),
+                                    image_id: None,
+                                    image_data: None,
+                                },
+                            }
+                        }
+
+                        // if image.is_none() {
+                        //     return x;
+                        // } else {
+                        //     match ImagesTable::new(connection).get_log_image_data(x) {
+                        //         Ok(data) => {
+                        //             LogList {
+                        //                 ..x,
+                        //                 image_data: data
+                        //             },
+                        //             Err((_) => {
+                        //                 x
+                        //             })
+                        //     }
+                        // }
+                    })
+                    .collect();
+
+                Ok((StatusCode::OK, Json(json!({"data": log_list}))))
             }
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "Failed to read empire"})),
+            )),
         }
     }
 
@@ -89,17 +168,17 @@ pub mod router {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
         match log_info_table::new(connection).get_loginfo_by_id(GetLogbookByIdParams { id: id }) {
-            Ok(log_item) => Ok((StatusCode::OK, Json(json!(log_item)))),
+            Ok(log_item) => Ok((StatusCode::OK, Json(json!({"data": log_item})))),
             Err(err) => {
                 eprintln!("Error reading empire: {:?}", err);
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"error": "Failed to read empire"})),
                 ))
-            },
+            }
         }
     }
-    
+
     #[utoipa::path(
         put,
         path = "/log_info/{id}",
@@ -119,18 +198,11 @@ pub mod router {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
         match log_info_table::new(connection).update_loginfo_by_id(id, body) {
-         Ok(updated_id) => {
-            Ok((
-                StatusCode::OK,
-                Json(json!(updated_id)),
-            ))
-         }
-         Err(_error) => {
-            Err((
+            Ok(updated_id) => Ok((StatusCode::OK, Json(json!(updated_id)))),
+            Err(_error) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"error": "Failed to read empire"})),
-            ))
-         }   
+            )),
         }
 
         // Ok((StatusCode::OK, Json(json!({
@@ -149,20 +221,16 @@ pub mod router {
         State(shared_state): State<ConnectionPool>,
         Json(body): Json<CreateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let conntection = shared_state.pool.get()
-        .expect("Failed connection to POOL");
+        let conntection = shared_state.pool.get().expect("Failed connection to POOL");
 
-    match log_info_table::new(conntection).create_loginfo(body) {
-        Ok(user_id) => {
-            Ok((StatusCode::OK, Json(json!(user_id))))
-        },
-        Err(err)  => {
-            println!("{}", err);
-            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Errorr"))))
+        match log_info_table::new(conntection).create_loginfo(body) {
+            Ok(user_id) => Ok((StatusCode::OK, Json(json!(user_id)))),
+            Err(err) => {
+                println!("{}", err);
+                Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Errorr"))))
+            }
         }
     }
-    }
-
 
     // async fn get_logbook_list(Extension(params): Extension<LogInfoParams>) -> String {
     //     format!("Page size: {}, Page: {}", params.page_size, params.page)
