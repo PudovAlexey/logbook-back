@@ -32,7 +32,7 @@ pub async fn auth(
     mut req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let mut error_boundary = error_boundary::SimpleError::new();
+    let error_boundary = error_boundary::SimpleError::new();
 
     let token = cookie_jar
         .get("access")

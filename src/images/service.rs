@@ -2,7 +2,7 @@ pub mod service {
     extern crate image;
 
     use crate::images::model::{AvatarInfo, CreateAvatarQuery, CreateImage, LogImageInfo};
-    use crate::schema::avatar::image_id;
+    
 
     use diesel::{
         prelude::*,

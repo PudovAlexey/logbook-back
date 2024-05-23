@@ -1,5 +1,5 @@
 pub mod service {
-    use crate::common::redis::Redis;
+    
     use crate::users::model::ResetUserPassword;
     use crate::{users::model::USER};
     use argon2::{
@@ -14,7 +14,7 @@ pub mod service {
     
 
     use crate::{
-        users::model::{CreateUserHandler, CreateUserHandlerQUERY, UpdateUserDataQuery, UserRemoveSensitiveInfo},
+        users::model::{CreateUserHandler, CreateUserHandlerQUERY, UpdateUserDataQuery},
     };
 
     use crate::schema::users::dsl::*;
@@ -123,7 +123,7 @@ pub mod service {
         pub fn update_user_handler(&mut self, user_id: uuid::Uuid, params: UpdateUserDataQuery) -> Result<uuid::Uuid, Error> {
             let existing_user = self.get_user_by_id(user_id);
 
-            let param = params.role.as_ref().map(|p| p.to_string());
+            let _param = params.role.as_ref().map(|p| p.to_string());
 
             if existing_user.is_ok() {
                 let update = diesel::update(users)

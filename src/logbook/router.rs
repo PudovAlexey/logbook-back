@@ -1,14 +1,14 @@
 pub mod router {
 
-    use crate::schema::avatar::image_id;
+    
     use crate::users::auth::auth;
     use crate::users::model::USER;
 
     use crate::images::service::service::ImagesTable;
     use axum::Json;
     use axum::{extract::State, response::IntoResponse, Router};
-    use diesel::expression::is_aggregate::No;
-    use diesel::ExpressionMethods;
+    
+    
     use serde_json::json;
     use serde_json::Value;
 
@@ -144,7 +144,7 @@ pub mod router {
 
                 Ok((StatusCode::OK, Json(json!({"data": log_list}))))
             }
-            Err(err) => Err((
+            Err(_err) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"error": "Failed to read empire"})),
             )),

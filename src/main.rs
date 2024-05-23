@@ -54,7 +54,7 @@ async fn main() {
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
-let res = axum::serve(listener.unwrap(), app.into_make_service()).await;
+let _res = axum::serve(listener.unwrap(), app.into_make_service()).await;
 println!("the server listening on {}{}:{}", ENV::new().app_protocol, ENV::new().app_host, ENV::new().app_port);
 common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().unwrap()).await;
 }

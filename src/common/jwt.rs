@@ -2,7 +2,7 @@ use crate::common::env::ENV;
 use crate::users::model::TokenClaims;
 use axum::response::Response;
 use axum_extra::extract::cookie::{Cookie, SameSite};
-use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation, errors::Error};
+use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use time::Duration;
 use axum::http::{header};
@@ -125,10 +125,10 @@ pub fn is_valid_token(refresh_token: &str) -> bool {
     let validation = Validation::default();
 
     match decode::<TokenClaims>(&refresh_token, &decoding_key, &validation) {
-        Ok(token_data) => {
+        Ok(_token_data) => {
             true
         },
-        Err(err) => {
+        Err(_err) => {
             false
         }
     }

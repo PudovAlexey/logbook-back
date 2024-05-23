@@ -74,7 +74,7 @@ impl Redis {
             .map_err(|e| e)
             .unwrap();
 
-        let mut connection = client.get_connection().unwrap();
+        let connection = client.get_connection().unwrap();
 
         Redis { connection }
     }

@@ -20,9 +20,9 @@ pub mod router {
 
     use crate::common::mailer::Mailer;
 
-    use rand_core::OsRng;
+    
 
-    use argon2::{password_hash::SaltString, Argon2, PasswordHash};
+    use argon2::{Argon2, PasswordHash};
 
     use crate::users::service::service::UserTable;
 
@@ -318,7 +318,7 @@ pub mod router {
         let mut user = UserRemoveSensitiveInfo::from(user);
         user.avatar_url = avatar_url;
 
-        let mut res = Response::new(
+        let res = Response::new(
             json!({
                 "data": {
                 "data": user,
@@ -340,7 +340,7 @@ pub mod router {
 
     pub async fn logout_user_handler() -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         
-        let mut res = Response::new(json!({"status": "success"}).to_string());
+        let res = Response::new(json!({"status": "success"}).to_string());
 
        let res = remove_jwt_cookie(res);
 
@@ -362,7 +362,7 @@ pub mod router {
     pub async fn health_checker_handler(
         State(shared_state): State<ConnectionPool>,
         Query(params): Query<RefreshTokenParams>,
-        headers: HeaderMap
+        _headers: HeaderMap
     ) -> impl IntoResponse {
         let mut res: Json<Value> = Json(json!({"data": "success"}));
         let mut simple_error = error_boundary::SimpleError::new();
@@ -390,7 +390,7 @@ pub mod router {
                    } 
                 
             },
-            Err(error) => {
+            Err(_error) => {
                 simple_error = simple_error.insert(String::from("failed to find user"));
 
             }
@@ -403,7 +403,7 @@ pub mod router {
     pub async fn set_user_avatar(
         Path(id): Path<uuid::Uuid>,
         State(shared_state): State<ConnectionPool>,
-        mut multipart: axum::extract::Multipart,
+        multipart: axum::extract::Multipart,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let image = ImageMultipart::new(multipart).await;
         let dir_path = "assets/avatar";
@@ -494,7 +494,7 @@ pub mod router {
         }
 
         match UserTable::new(connection).get_user_by_email(email.clone()) {
-            Ok(user) => {
+            Ok(_user) => {
                 let mut rng = rand::thread_rng();
                 let random_number: u32 = rng.gen_range(100000..999999);
 
@@ -539,7 +539,7 @@ pub mod router {
 
 
             },
-            Err(error) => {
+            Err(_error) => {
                 error_boundary = error_boundary.insert(String::from("failed to find user"));
 
                 Err(error_boundary.send_error())
@@ -568,7 +568,7 @@ pub mod router {
             Ok(user) => {
                 let mut error_boundary = error_boundary::ObjectError::new();
 
-                if (body.clone().compare()) {
+                if body.clone().compare() {
                     let secret_key = Redis::new().get_item(format!("change_password={}", {email}));
 
                     if secret_key.is_ok() {
@@ -643,7 +643,7 @@ pub mod router {
 
                 error_boundary.send(res)
             },
-            Err(error) => {
+            Err(_error) => {
                 let mut error_boundary = error_boundary::SimpleError::new();
 
                 error_boundary = error_boundary.insert(String::from("failed to find user"));
@@ -738,7 +738,7 @@ pub mod router {
             Ok(uuid) => {
                 Ok((StatusCode::OK, Json(json!({"data": format!("accaunt with id {} has been removed", uuid)}))))
             },
-            Err(error) => {
+            Err(_error) => {
                let errors = errors.insert(String::from("failed to removing accaunn"));
 
                 Err(errors.send_error())

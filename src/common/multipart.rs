@@ -66,7 +66,7 @@ impl ImageMultipart {
                         image.extend_from_slice(chunk.as_ref());
                     }
                 },
-                (_) => {}
+                _ => {}
             }
             
         }

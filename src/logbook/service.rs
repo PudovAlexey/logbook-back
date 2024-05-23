@@ -55,7 +55,7 @@ pub mod service {
 
             let mut query = loginfo.into_boxed();
 
-            let test = date::date::make_timestamp_from_string("31.12.2023");
+            let _test = date::date::make_timestamp_from_string("31.12.2023");
 
             query = query.filter(user_id.eq(speciphic_id));
 
