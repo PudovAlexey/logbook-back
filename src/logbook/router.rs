@@ -45,9 +45,11 @@ pub mod router {
         get,
         path = "/log_info",
         params(
-            ("offset" = Option<i64>, Query, description = "page"),
-            ("limit" = Option<i64>, Query, description = "Page Size"),
-            ("search_query" = Option<String>, Query, description = "seach value")
+            ("page" = Option<i64>, Query, description = "page"),
+            ("page_size" = Option<i64>, Query, description = "page_size"),
+            ("start_date" = Option<NaiveDateTime>, Query, description = "start_date"),
+            ("end_date" = Option<NaiveDateTime>, Query, description = "end_date"),
+            ("search_query" = Option<String>, Query, description = "search_query")
         ),
         responses(
             (status = 200, description = "List all todos successfully", body = [model::LogInfo])
