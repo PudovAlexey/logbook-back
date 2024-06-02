@@ -1,0 +1,5 @@
+SELECT *, similarity(title, 'кайф') as similarity_title, similarity(description, 'кайф') as similarity_descr  FROM loginfo
+WHERE user_id = 'c4e87c27-2112-4efd-8979-6e40afd39036' AND '2024-05-1T14:50:17.770Z' <= start_datetime AND '2024-05-31T14:50:17.770Z' >= start_datetime AND word_similarity(title, 'кайф') > 0.2 OR word_similarity(description, 'кайф') > 0.1
+ORDER BY  similarity_title DESC, similarity_descr DESC
+OFFSET 1
+LIMIT 100;

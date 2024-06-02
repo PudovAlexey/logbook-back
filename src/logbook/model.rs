@@ -1,7 +1,7 @@
 use chrono::{
   NaiveDateTime,
 };
-use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
+use diesel::{deserialize::{Queryable, QueryableByName}, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -27,8 +27,8 @@ pub struct LogInfo {
    pub image_id: Option<i32>
 }
 
-#[derive(Selectable, Serialize, Deserialize, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::loginfo)]
+#[derive(Serialize, Deserialize, Queryable, QueryableByName, Insertable, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 
 pub struct RequiredSelectListItems {
@@ -86,4 +86,12 @@ pub struct CreateLogInfo {
   pub  start_datetime: NaiveDateTime,
   pub  end_datetime: NaiveDateTime,
   pub user_id: uuid::Uuid,
+}
+
+#[diesel(table_name = crate::schema::loginfo)]
+#[derive(Serialize, Deserialize, Queryable, QueryableByName, Insertable, Debug, Clone)]
+pub struct Organization {
+pub id: i32,
+// pub name: String,
+// pub country: String
 }

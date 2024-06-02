@@ -1,12 +1,10 @@
 pub mod service {
-    use crate::{common::formatters::date, users::model::USER};
+    use crate::{common::formatters::date, logbook::{log_list_query::{log_list_query, LogListParams}, model::LogInfo}, users::model::USER};
 
     use chrono::NaiveDateTime;
+
     use diesel::{
-        prelude::*,
-        r2d2::{ConnectionManager, PooledConnection},
-        result::Error,
-        PgConnection,
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_query, sql_types::{Double, Text, Uuid}, PgConnection
     };
     use serde::{Deserialize, Serialize};
 
@@ -38,15 +36,28 @@ pub mod service {
         pub user: USER,
     }
 
-    #[derive(Deserialize, Debug)]
+    // #[derive(Insertable, Deserialize, )]
+    // pub struct LogInfo {
+    //     id: i32,
+    // }
+
+    #[derive(Deserialize, Debug, Queryable)]
     pub struct GetLogbookByIdParams {
         pub id: i32,
     }
+
 
     impl LogInfoTable {
         pub fn new(connection: PooledPg) -> LogInfoTable {
             LogInfoTable { connection }
         }
+
+        // pub fn get_test_logbook_list(&mut self) {
+        //     let query = "SELECT id FROM loginfo;";
+
+        //    let res: Vec<model::Organization> = sql_query(query)
+        //     .load(&mut self.connection).unwrap();
+        // }
 
         pub fn get_logbook_list(
             &mut self,
@@ -77,33 +88,47 @@ pub mod service {
             // let limit = limit.unwrap_or(-1);
             // let offset = offset.unwrap_or(-1);
             // let search_query = search_query.unwrap_or(String::from(""));
+            let query = log_list_query(LogListParams {
+                search_value: search_query,
+                user_id: speciphic_id,
+                start_date,
+                end_date,
+                offset,
+                limit
+            });
 
-            let mut query = loginfo.into_boxed();
+            let res: Vec<model::RequiredSelectListItems> = sql_query(query)
+            .load(&mut self.connection)
+            .expect("error to loading Logbook");
 
-            query = query
-                .filter(user_id.eq(speciphic_id));
-            //     .filter(start_datetime.ge(start_date.unwrap_or_default()))
-            //     .filter(end_datetime.le(end_date.unwrap_or_default()))
+            Ok(res)
+
+            // let mut query = loginfo.into_boxed();
+
+            // query = query
+            //     .filter(user_id.eq(speciphic_id));
+            // //     .filter(start_datetime.ge(start_date.unwrap_or_default()))
+            // //     .filter(end_datetime.le(end_date.unwrap_or_default()))
+            // //     .filter(title.eq(search_query.unwrap_or_default()))
+
+
+            // if start_date.is_some() && end_date.is_some() {
+            //     query = query
+            //     .filter(start_datetime.ge(start_date.unwrap()))
+            //     .filter(start_datetime.ge(end_date.unwrap()))
+            // }
+
+            // if search_query.is_some() {
+            //     query = query
             //     .filter(title.eq(search_query.unwrap_or_default()))
+            // }
 
-
-            if start_date.is_some() && end_date.is_some() {
-                query = query
-                .filter(start_datetime.ge(start_date.unwrap()))
-                .filter(start_datetime.ge(end_date.unwrap()))
-            }
-
-            if search_query.is_some() {
-                query = query
-                .filter(title.eq(search_query.unwrap_or_default()))
-            }
-
-            Ok(query
-                .offset(offset)
-                .limit(limit)
-                .select(model::RequiredSelectListItems::as_select())
-                .load(&mut self.connection)
-                .expect("error to loading Logbook"))
+            // Ok(query
+            //     .offset(offset)
+            //     .limit(limit)
+            //     .select(model::RequiredSelectListItems::as_select())
+            //     .load(&mut self.connection)
+            //     .expect("error to loading Logbook"))
         }
 
         pub fn get_loginfo_by_id(
