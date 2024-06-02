@@ -35,7 +35,7 @@ pub fn log_list_query(LogListParams {
 
 
 
-  let qu = format!("SELECT id, title, description, start_datetime, image_id {} {} FROM loginfo
+  format!("SELECT id, title, description, start_datetime, image_id {} {} FROM loginfo
     WHERE user_id = '{}' {} {}
     {}
     OFFSET {}
@@ -48,11 +48,7 @@ pub fn log_list_query(LogListParams {
     order_similarity,
     offset,
     limit,
-);
-
-println!("{}", qu);
-
-qu
+)
     
 }
 
