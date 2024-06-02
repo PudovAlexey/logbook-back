@@ -51,11 +51,4 @@ jobs:
            && docker-compose down
            && docker-compose pull
            && docker-compose up -d
-            # cd logbook-back
-            # && docker-compose down
-            # && cd ..
-            # && rm -rf logbook-back
-            # && git clone git@github.com:PudovAlexey/logbook-back.git
-            # && cd logbook-back
-            # && docker-compose up -d
           '
