@@ -1,14 +1,9 @@
 pub mod service {
     extern crate image;
-    use core::panic;
-    use std::borrow::{Borrow, BorrowMut};
 
-    use crate::images::model::{AvatarInfo, CreateAvatarQuery, CreateImage, CreateImageQuery, Image};
-    use crate::users::service::service::UserTable;
+    use crate::images::model::{AvatarInfo, CreateAvatarQuery, CreateImage, LogImageInfo};
+    
 
-    use axum::Error;
-    use diesel::associations::HasTable;
-    use diesel::sql_types::Uuid;
     use diesel::{
         prelude::*,
         r2d2::{ConnectionManager, PooledConnection},
@@ -89,6 +84,19 @@ pub mod service {
                 .first::<AvatarInfo>(&mut self.connection);
 
             avatar_data
+        }
+
+        pub fn get_log_image_data(&mut self, logbook_id: i32)-> Result<LogImageInfo, diesel::result::Error> {
+            use crate::schema::log_image;
+            use crate::schema::image;
+
+            let log_image_data: Result<LogImageInfo, diesel::result::Error> = log_image::table
+                .inner_join(image::table.on(image::columns::id.eq(log_image::columns::image_id)))
+                .filter(log_image::columns::id.eq(logbook_id))
+                .select(LogImageInfo::as_select())
+                .first::<LogImageInfo>(&mut self.connection);
+
+            log_image_data
         }
     }
 }

@@ -146,7 +146,7 @@ pub mod error_boundary {
     }
 
     impl BoundaryHandlers<String, Json<Value>> for SimpleError {
-       fn insert(mut self, params: String) -> Self {
+       fn insert(self, params: String) -> Self {
             let new_value = format!("{}{}", self.value, params);
             SimpleError {
                 value: new_value

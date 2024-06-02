@@ -29,10 +29,10 @@ use crate::common::db::ConnectionPool;
 pub async fn auth(
     cookie_jar: CookieJar,
     State(shared_state): State<ConnectionPool>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
-    let mut error_boundary = error_boundary::SimpleError::new();
+    let error_boundary = error_boundary::SimpleError::new();
 
     let token = cookie_jar
         .get("access")
@@ -103,7 +103,7 @@ pub async fn auth(
 
                         match user.is_ok() {
                             true => {
-                                // req.extensions_mut().insert(user.unwrap());
+                            req.extensions_mut().insert(user.unwrap());
 
 
                             let response = next.run(req).await;

@@ -20,6 +20,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    log_image (id) {
+        id -> Int4,
+        image_id -> Int4,
+        logbook_id -> Int4,
+    }
+}
+
+diesel::table! {
     loginfo (id) {
         id -> Int4,
         title -> Varchar,
@@ -33,6 +41,7 @@ diesel::table! {
         end_pressure -> Int4,
         description -> Nullable<Varchar>,
         user_id -> Uuid,
+        image_id -> Nullable<Int4>,
     }
 }
 
@@ -60,11 +69,13 @@ diesel::table! {
 }
 
 diesel::joinable!(avatar -> image (image_id));
+diesel::joinable!(log_image -> image (image_id));
 diesel::joinable!(loginfo -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     avatar,
     image,
+    log_image,
     loginfo,
     users,
 );

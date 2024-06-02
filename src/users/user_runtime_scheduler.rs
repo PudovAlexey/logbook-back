@@ -11,7 +11,7 @@ use tokio::time::{self, Duration};
 
 pub async fn user_runtime_scheduler(connection: PooledPg) {
     async fn periodic_task(connection: PooledPg) {
-        UserTable::new(connection).remove_un_verified_users();
+      let _ =  UserTable::new(connection).remove_un_verified_users();
     }
 
     

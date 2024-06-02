@@ -1,13 +1,12 @@
 pub mod service {
-    use crate::common::formatters::date;
-    
+    use crate::{common::formatters::date, logbook::{log_list_query::{log_list_query, LogListParams}, model::LogInfo}, users::model::USER};
+
+    use chrono::NaiveDateTime;
+
     use diesel::{
-        prelude::*,
-        r2d2::{ConnectionManager, PooledConnection},
-        result::Error,
-        PgConnection,
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_query, sql_types::{Double, Text, Uuid}, PgConnection
     };
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
 
     use crate::logbook::model;
     use crate::schema::loginfo::dsl::*;
@@ -18,57 +17,118 @@ pub mod service {
         connection: PooledPg,
     }
 
-    #[derive(Deserialize, Debug)]
-    pub struct GetLogbookListParams {
-        pub limit: Option<i64>,
-        pub offset: Option<i64>,
+    #[derive(Deserialize, Debug, Serialize)]
+    pub struct SearchLogsParams {
+        pub page: Option<i64>,
+        pub page_size: Option<i64>,
+        pub start_date: Option<NaiveDateTime>,
+        pub end_date: Option<NaiveDateTime>,
         pub search_query: Option<String>,
+        // pub limit: Option<i64>,
+        // pub offset: Option<i64>,
+        // pub search_query: Option<String>,
     }
 
-    #[derive(Deserialize, Debug)]
+    #[derive(Deserialize, Debug, Serialize)]
+
+    pub struct GetLogbookListParams {
+        pub search_params: SearchLogsParams,
+        pub user: USER,
+    }
+
+    // #[derive(Insertable, Deserialize, )]
+    // pub struct LogInfo {
+    //     id: i32,
+    // }
+
+    #[derive(Deserialize, Debug, Queryable)]
     pub struct GetLogbookByIdParams {
         pub id: i32,
     }
+
 
     impl LogInfoTable {
         pub fn new(connection: PooledPg) -> LogInfoTable {
             LogInfoTable { connection }
         }
 
+        // pub fn get_test_logbook_list(&mut self) {
+        //     let query = "SELECT id FROM loginfo;";
+
+        //    let res: Vec<model::Organization> = sql_query(query)
+        //     .load(&mut self.connection).unwrap();
+        // }
+
         pub fn get_logbook_list(
             &mut self,
             params: GetLogbookListParams,
-        ) -> Result<Vec<model::LogInfo>, diesel::result::Error> {
-            let limit = params.limit.unwrap_or(-1);
-            let offset = params.offset.unwrap_or(-1);
-            let search_query = params.search_query.unwrap_or(String::from(""));
+        ) -> Result<Vec<model::RequiredSelectListItems>, diesel::result::Error> {
+            // let SearchLogsParams {
+            //     page,
+            //     page_size,
+            //     start_datetime,
+            //     end_datetime,
+            // } = params.search_params;
 
-            let mut query = loginfo.into_boxed();
+            let SearchLogsParams {
+                page_size, 
+                page,
+                start_date,
+                end_date,
+                search_query,
+                 ..} = params.search_params;
 
-            let test = date::date::make_timestamp_from_string("31.12.2023");
+            let USER {
+                id: speciphic_id, ..
+            } = params.user;
 
-            println!("timestamp {:?}", test);
+            let limit = page_size.unwrap_or(100);
+            let offset = limit * (page.unwrap_or(1) - 1);
 
-            if limit >= 0 {
-                query = query.limit(limit);
-            }
+            // let limit = limit.unwrap_or(-1);
+            // let offset = offset.unwrap_or(-1);
+            // let search_query = search_query.unwrap_or(String::from(""));
+            let query = log_list_query(LogListParams {
+                search_value: search_query,
+                user_id: speciphic_id,
+                start_date,
+                end_date,
+                offset,
+                limit
+            });
 
-            if limit >= 0 {
-                query = query.offset(offset);
-            }
+            let res: Vec<model::RequiredSelectListItems> = sql_query(query)
+            .load(&mut self.connection)
+            .expect("error to loading Logbook");
 
-            if search_query.len() > 0 {
-                query = query.filter(
-                    title
-                        .ilike(format!("%{}%", search_query))
-                        .or(description.ilike(format!("%{}%", search_query))),
-                )
-            }
+            Ok(res)
 
-            Ok(query
-                .select(model::LogInfo::as_select())
-                .load(&mut self.connection)
-                .expect("error to loading Logbook"))
+            // let mut query = loginfo.into_boxed();
+
+            // query = query
+            //     .filter(user_id.eq(speciphic_id));
+            // //     .filter(start_datetime.ge(start_date.unwrap_or_default()))
+            // //     .filter(end_datetime.le(end_date.unwrap_or_default()))
+            // //     .filter(title.eq(search_query.unwrap_or_default()))
+
+
+            // if start_date.is_some() && end_date.is_some() {
+            //     query = query
+            //     .filter(start_datetime.ge(start_date.unwrap()))
+            //     .filter(start_datetime.ge(end_date.unwrap()))
+            // }
+
+            // if search_query.is_some() {
+            //     query = query
+            //     .filter(title.eq(search_query.unwrap_or_default()))
+            // }
+
+            // Ok(query
+            //     .offset(offset)
+            //     .limit(limit)
+            //     .select(model::RequiredSelectListItems::as_select())
+            //     .load(&mut self.connection)
+            //     .expect("error to loading Logbook"))
         }
 
         pub fn get_loginfo_by_id(
@@ -83,10 +143,14 @@ pub mod service {
                 .expect("error to loading Logbook"))
         }
 
-        pub fn update_loginfo_by_id(&mut self, update_id: i32, query: model::UpdateLogInfo) -> Result<i32, Error> {
+        pub fn update_loginfo_by_id(
+            &mut self,
+            update_id: i32,
+            query: model::UpdateLogInfo,
+        ) -> Result<i32, Error> {
             let model::UpdateLogInfo {
-                title: tit, 
-                description: descr, 
+                title: tit,
+                description: descr,
                 depth: dep,
                 start_pressure: start_pres,
                 end_pressure: end_pres,
@@ -95,27 +159,27 @@ pub mod service {
                 water_temperature: water_temp,
                 start_datetime: start_date,
                 end_datetime: end_date,
-                 ..} = query;
+                ..
+            } = query;
 
-            let existing_user = self.get_loginfo_by_id(GetLogbookByIdParams {
-                id: update_id
-            });
+            let existing_user = self.get_loginfo_by_id(GetLogbookByIdParams { id: update_id });
 
             match existing_user {
                 Ok(_) => {
-                    let _update_loginfo = diesel::update(loginfo).set((
-                        title.eq(tit),
-                        description.eq(descr),
-                        depth.eq(dep),
-                        start_pressure.eq(start_pres),
-                        end_pressure.eq(end_pres),
-                        vawe_power.eq(vawe),
-                        side_view.eq(side),
-                        water_temperature.eq(water_temp),
-                        start_datetime.eq(start_date),
-                        end_datetime.eq(end_date),
-                    ))
-                    .execute(&mut self.connection);
+                    let _update_loginfo = diesel::update(loginfo)
+                        .set((
+                            title.eq(tit),
+                            description.eq(descr),
+                            depth.eq(dep),
+                            start_pressure.eq(start_pres),
+                            end_pressure.eq(end_pres),
+                            vawe_power.eq(vawe),
+                            side_view.eq(side),
+                            water_temperature.eq(water_temp),
+                            start_datetime.eq(start_date),
+                            end_datetime.eq(end_date),
+                        ))
+                        .execute(&mut self.connection);
 
                     Ok(update_id)
                 }
@@ -136,25 +200,27 @@ pub mod service {
                 start_datetime: start_date,
                 end_datetime: end_date,
                 user_id: user,
-                ..} = query;
-            
-           let new_loginfo = diesel::insert_into(loginfo).values((
-                title.eq(tit),
-                description.eq(descr),
-                depth.eq(dep),
-                start_pressure.eq(start_pres),
-                end_pressure.eq(end_pres),
-                vawe_power.eq(vawe_pow),
-                side_view.eq(side),
-                water_temperature.eq(water_temp),
-                start_datetime.eq(start_date),
-                end_datetime.eq(end_date),
-                user_id.eq(user),
-            ))
-            .returning(id)
-            .get_result(&mut self.connection);
+                ..
+            } = query;
 
-        new_loginfo
+            let new_loginfo = diesel::insert_into(loginfo)
+                .values((
+                    title.eq(tit),
+                    description.eq(descr),
+                    depth.eq(dep),
+                    start_pressure.eq(start_pres),
+                    end_pressure.eq(end_pres),
+                    vawe_power.eq(vawe_pow),
+                    side_view.eq(side),
+                    water_temperature.eq(water_temp),
+                    start_datetime.eq(start_date),
+                    end_datetime.eq(end_date),
+                    user_id.eq(user),
+                ))
+                .returning(id)
+                .get_result(&mut self.connection);
+
+            new_loginfo
         }
     }
 }

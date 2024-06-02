@@ -1,5 +1,5 @@
 use diesel::{
-    prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, PgConnection
+    r2d2::{ConnectionManager, PooledConnection}, PgConnection
 };
 
 type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
