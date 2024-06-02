@@ -53,22 +53,31 @@
 # # CMD ["chmod", "+x", "logbook-app-back", "&&", "./logbook-app-back"]
 # ENTRYPOINT [ "./logbook-app-back" ]
 
-FROM rust:1.75.0 as builder
+FROM rust:1.78.0 as builder
 
 WORKDIR /usr/src/app
 
 COPY . .
 RUN cargo build --release
 
-FROM rust:1.75.0
+FROM rust:1.78.0
 
+# Установка diesel_cli для работы с миграциями
 RUN cargo install diesel_cli --no-default-features --features "postgres"
 
+# Копирование исполняемого файла и миграций из билдера
 COPY --from=builder /usr/src/app/target/release/logbook-app-back /usr/local/bin/logbook-app-back
-COPY --from=builder /usr/src/app/migrations /usr/local/bin/migrations
+COPY --from=builder /usr/src/app/migrations /migrations
 
 WORKDIR /usr/local/bin
 
-CMD ["diesel", "migration", "run"]
+# Создание скрипта для запуска миграций и приложения
+RUN echo '#!/bin/sh\n\
+diesel migration run && \\\n\
+./logbook-app-back' > entrypoint.sh
 
-ENTRYPOINT [ "./logbook-app-back" ]
+# Делаем скрипт исполняемым
+RUN chmod +x entrypoint.sh
+
+# Запуск скрипта при старте контейнера
+ENTRYPOINT ["./entrypoint.sh"]
