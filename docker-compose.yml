@@ -17,7 +17,8 @@ services:
       - ./pg_dump:/pg_dumb
   logbook:
     build: .
-    image: aleksej177/logbook:latest
+    # image: aleksej177/logbook:latest
+    image: 37.77.104.138:5001/logbook:latest
     volumes:
      - .:/logbook-app-back
     ports:
