@@ -47,7 +47,7 @@ async fn main() {
     .nest_service("/assets", axum::routing::get_service(ServeDir::new("assets")
     .append_index_html_on_directories(false)))
 
-    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
     .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
     .merge(users::router::router::user_routes(shared_connection_pool.clone()))
