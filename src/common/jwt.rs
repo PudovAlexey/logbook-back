@@ -54,15 +54,15 @@ impl JWTToken for JWT {
             .path("/")
             .max_age(Duration::minutes(ENV::new().jwt_access_expired_in))
             .same_site(SameSite::Lax)
-            .http_only(true)
-            .finish();  
+            .http_only(true);
+            // .finish();  
 
             let refresh = Cookie::build(format!("refresh={}", refresh_token.to_owned()))
             .path("/")
             .max_age(Duration::minutes(ENV::new().jwt_refresh_expired_in))
             .same_site(SameSite::Lax)
-            .http_only(true)
-            .finish();       
+            .http_only(true);
+            // .finish();       
 
             res.headers_mut().append(header::SET_COOKIE, access.to_string().parse().unwrap());
             res.headers_mut().append(header::SET_COOKIE, refresh.to_string().parse().unwrap());
@@ -142,8 +142,8 @@ pub fn remove_jwt_cookie(mut res: Response<String>) -> Response<String> {
         .path("/")
         .max_age(Duration::hours(-1))
         .same_site(SameSite::Lax)
-        .http_only(true)
-        .finish();
+        .http_only(true);
+        // .finish();
 
         res
             .headers_mut()

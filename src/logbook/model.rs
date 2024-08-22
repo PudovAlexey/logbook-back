@@ -1,13 +1,10 @@
-use chrono::{
-  NaiveDateTime,
-};
+use chrono::NaiveDateTime;
 use diesel::{deserialize::{Queryable, QueryableByName}, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::images::model::LogImageInfo;
 
-// #[derive(Serialize, Deserialize, Debug, Clone, Queryable, Selectable,ToSchema)]
 #[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::loginfo)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -27,9 +24,9 @@ pub struct LogInfo {
    pub image_id: Option<i32>
 }
 
-#[diesel(table_name = crate::schema::loginfo)]
 #[derive(Serialize, Deserialize, Queryable, QueryableByName, Insertable, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(table_name = crate::schema::loginfo)]
 
 pub struct RequiredSelectListItems {
  pub id: i32,
@@ -48,10 +45,6 @@ pub struct LogList {
   pub image_id: Option<i32>,
   pub image_data: Option<LogImageInfo>  
 }
-
-// #[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
-// #[diesel(table_name = crate::schema::loginfo)]
-// #[diesel(check_for_backend(diesel::pg::Pg))]
 
 #[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::loginfo)]
@@ -88,10 +81,8 @@ pub struct CreateLogInfo {
   pub user_id: uuid::Uuid,
 }
 
-#[diesel(table_name = crate::schema::loginfo)]
 #[derive(Serialize, Deserialize, Queryable, QueryableByName, Insertable, Debug, Clone)]
+#[diesel(table_name = crate::schema::loginfo)]
 pub struct Organization {
 pub id: i32,
-// pub name: String,
-// pub country: String
 }

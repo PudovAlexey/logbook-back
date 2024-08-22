@@ -1,10 +1,10 @@
 pub mod service {
-    use crate::{common::formatters::date, logbook::{log_list_query::{log_list_query, LogListParams}, model::LogInfo}, users::model::USER};
+    use crate::{logbook::log_list_query::{log_list_query, LogListParams}, users::model::USER};
 
     use chrono::NaiveDateTime;
 
     use diesel::{
-        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_query, sql_types::{Double, Text, Uuid}, PgConnection
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_query, PgConnection
     };
     use serde::{Deserialize, Serialize};
 

@@ -140,7 +140,7 @@ pub mod router {
             Err(_error) => {
                 let eror_response = serde_json::json!({
                     "status": "fail",
-                    "message": format!("Error while hashing password: {}", _error)
+                    "message": format!("Failed create user: {}", _error)
                 });
 
                 Err((
