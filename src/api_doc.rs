@@ -1,4 +1,4 @@
-pub mod apiDoc {
+pub mod api_doc {
     use utoipa::{
         OpenApi, 
         Modify,

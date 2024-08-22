@@ -35,13 +35,13 @@ pub struct TokenGenerate {
     token_type: String,
 }
 
-struct TokenGeneration {
-    token: String,
-    expires_in: usize,
+pub struct TokenGeneration {
+   pub token: String,
+   pub expires_in: usize,
 }
 pub trait JWTToken {
-   fn token_generate(value: TokenGenerate) -> TokenGeneration;
-   fn set_cookie(&self, res: Response<String>) -> Response<String>;
+    fn set_cookie(&self, res: Response<String>) -> Response<String>;
+    fn token_generate(value: TokenGenerate) -> TokenGeneration;
 }
 
 impl JWTToken for JWT {
@@ -70,7 +70,7 @@ impl JWTToken for JWT {
             return res
         }
 
-        fn token_generate(params: TokenGenerate) -> TokenGeneration {
+         fn token_generate(params: TokenGenerate) -> TokenGeneration {
         let now = chrono::Utc::now();
         let expire_secs = params.time * 60;
         let time = (now.timestamp() + expire_secs) as usize;

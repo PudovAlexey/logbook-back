@@ -127,7 +127,7 @@ pub mod router {
                        body: format!("your code is <span>{}</span>", {random_number})
                 });
 
-                    mailer.send();
+                    let _ = mailer.send();
 
                     Ok((StatusCode::OK, Json(json!({"data": id}))))
                 } else {
@@ -176,7 +176,7 @@ pub mod router {
 
                 match UserTable::new(connection).user_verify(uuid) {
                     Ok(user) => {
-                        Redis::new().remove_item(user_id);
+                        let _ = Redis::new().remove_item(user_id);
                         Ok((StatusCode::OK, Json(json!({"data": user}))))
                     }
                     Err(_) => Ok((StatusCode::OK, Json(json!({"test": "test"})))),
@@ -359,7 +359,7 @@ pub mod router {
         ),
     )]
 
-    pub async fn health_checker_handler(
+    async fn health_checker_handler(
         State(shared_state): State<ConnectionPool>,
         Query(params): Query<RefreshTokenParams>,
         _headers: HeaderMap

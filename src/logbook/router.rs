@@ -16,7 +16,7 @@ pub mod router {
     use axum::middleware;
 
     use crate::logbook::model::{
-        CreateLogInfo, LogInfo, LogList, RequiredSelectListItems, UpdateLogInfo,
+        CreateLogInfo, LogList, RequiredSelectListItems, UpdateLogInfo,
     };
     use crate::logbook::service::service::{
         GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table,
@@ -25,7 +25,6 @@ pub mod router {
 
     use crate::common::db::ConnectionPool;
     use http::StatusCode;
-    use tokio::sync::Mutex;
 
     pub fn logbook_routes(shared_connection_pool: ConnectionPool) -> Router {
         let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
@@ -40,7 +39,6 @@ pub mod router {
             .with_state(shared_connection_pool)
     }
 
-    pub(super) type Store = Mutex<Vec<LogInfo>>;
     #[utoipa::path(
         get,
         path = "/log_info",

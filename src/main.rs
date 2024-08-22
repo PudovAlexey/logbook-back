@@ -1,13 +1,13 @@
 pub mod logbook;
 pub mod schema;
-pub mod apiDoc;
+pub mod api_doc;
 pub mod users;
 pub mod common;
 pub mod images;
 
 use crate::common::env::ENV;
 
-use apiDoc::apiDoc::ApiDoc;
+use api_doc::api_doc::ApiDoc;
 
 
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -54,7 +54,7 @@ async fn main() {
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 
-let _res = axum::serve(listener.unwrap(), app.into_make_service()).await;
 println!("the server listening on {}{}:{}", ENV::new().app_protocol, ENV::new().app_host, ENV::new().app_port);
+let _res = axum::serve(listener.unwrap(), app.into_make_service()).await.unwrap();
 common::runtime_scheduler::runtime_scheduler(shared_connection_pool.clone().pool.get().unwrap()).await;
 }

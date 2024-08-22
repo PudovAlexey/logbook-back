@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 
-enum UserRole {
+pub enum UserRole {
     USER,
     ADMIN,
 }
@@ -42,7 +42,7 @@ pub struct USER {
 
 pub struct ComparePassword<T> {
    pub user: T,
-   pub confirmPassword: String
+   pub confirm_password: String
 }
 
 #[derive(ToSchema, Debug)]
