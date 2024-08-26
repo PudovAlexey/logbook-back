@@ -9,6 +9,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    dive_site (id) {
+        id -> Int4,
+        title -> Varchar,
+        description -> Nullable<Varchar>,
+        latitude -> Numeric,
+        longitude -> Numeric,
+        is_verified -> Bool,
+        depth_from -> Float4,
+        depth_to -> Float4,
+        level -> Int4,
+        image_id -> Int4,
+    }
+}
+
+diesel::table! {
     image (id) {
         id -> Int4,
         path -> Text,
@@ -42,6 +57,7 @@ diesel::table! {
         description -> Nullable<Varchar>,
         user_id -> Uuid,
         image_id -> Nullable<Int4>,
+        site_id -> Int4,
     }
 }
 
@@ -69,11 +85,14 @@ diesel::table! {
 }
 
 diesel::joinable!(avatar -> image (image_id));
+diesel::joinable!(dive_site -> image (image_id));
 diesel::joinable!(log_image -> image (image_id));
+diesel::joinable!(loginfo -> dive_site (site_id));
 diesel::joinable!(loginfo -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     avatar,
+    dive_site,
     image,
     log_image,
     loginfo,

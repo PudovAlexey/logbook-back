@@ -8,10 +8,13 @@ pub mod api_doc {
     use crate::logbook;
     use crate::users;
     use crate::images;
+    use crate::dive_sites;
 
     #[derive(OpenApi)]
     #[openapi(
         paths(
+            dive_sites::router::get_dive_site_list,
+
             logbook::router::router::get_logbook_list,
             logbook::router::router::get_logbook_by_id,
             logbook::router::router::update_loginfo_handler,

@@ -3,6 +3,7 @@ pub mod schema;
 pub mod api_doc;
 pub mod users;
 pub mod common;
+pub mod dive_sites;
 pub mod images;
 
 use crate::common::env::ENV;
