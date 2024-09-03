@@ -19,23 +19,21 @@ pub mod router {
         CreateLogInfo, LogList, RequiredSelectListItems, UpdateLogInfo,
     };
     use crate::logbook::service::service::{
-        GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table,
-        SearchLogsParams,
+        CREATELogInfoParams, GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table, SearchLogsParams
     };
 
     use crate::common::db::ConnectionPool;
     use http::StatusCode;
 
     pub fn logbook_routes(shared_connection_pool: ConnectionPool) -> Router {
-        let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
         Router::new()
             .route(
                 "/log_info",
-                axum::routing::get(get_logbook_list).route_layer(auth_middleware),
+                axum::routing::get(get_logbook_list).route_layer(middleware::from_fn_with_state(shared_connection_pool.clone(), auth)),
             )
             .route("/log_info/:id", axum::routing::get(get_logbook_by_id))
             .route("/log_info/:id", axum::routing::put(update_loginfo_handler))
-            .route("/log_info/", axum::routing::post(create_loginfo_handler))
+            .route("/log_info/", axum::routing::post(create_loginfo_handler).route_layer(middleware::from_fn_with_state(shared_connection_pool.clone(), auth)))
             .with_state(shared_connection_pool)
     }
 
@@ -218,16 +216,20 @@ pub mod router {
 
     )]
     pub async fn create_loginfo_handler(
+        Extension(user): Extension<USER>,
         State(shared_state): State<ConnectionPool>,
         Json(body): Json<CreateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let conntection = shared_state.pool.get().expect("Failed connection to POOL");
 
-        match log_info_table::new(conntection).create_loginfo(body) {
+        match log_info_table::new(conntection).create_loginfo(CREATELogInfoParams {
+            body,
+            user_info: user
+        }) {
             Ok(user_id) => Ok((StatusCode::OK, Json(json!(user_id)))),
             Err(err) => {
                 println!("{}", err);
-                Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!("Errorr"))))
+                Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": err.to_string()}))))
             }
         }
     }

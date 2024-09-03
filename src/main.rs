@@ -52,6 +52,7 @@ async fn main() {
     .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
     .merge(logbook_routes::router::logbook_routes(shared_connection_pool.clone()))
     .merge(users::router::router::user_routes(shared_connection_pool.clone()))
+    .merge(dive_sites::router::dive_sites_routes(shared_connection_pool.clone()))
     .layer(CorsLayer::permissive())
     .layer(TraceLayer::new_for_http());
 

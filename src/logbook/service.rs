@@ -24,9 +24,6 @@ pub mod service {
         pub start_date: Option<NaiveDateTime>,
         pub end_date: Option<NaiveDateTime>,
         pub search_query: Option<String>,
-        // pub limit: Option<i64>,
-        // pub offset: Option<i64>,
-        // pub search_query: Option<String>,
     }
 
     #[derive(Deserialize, Debug, Serialize)]
@@ -44,6 +41,12 @@ pub mod service {
     #[derive(Deserialize, Debug, Queryable)]
     pub struct GetLogbookByIdParams {
         pub id: i32,
+    }
+
+    #[derive(Deserialize, Debug, Queryable)]
+    pub struct CREATELogInfoParams {
+       pub body: model::CreateLogInfo,
+       pub user_info: USER
     }
 
 
@@ -187,7 +190,9 @@ pub mod service {
             }
         }
 
-        pub fn create_loginfo(&mut self, query: model::CreateLogInfo) -> Result<i32, Error> {
+        pub fn create_loginfo(&mut self, query: CREATELogInfoParams) -> Result<i32, Error> {
+            let CREATELogInfoParams {body, user_info} = query;
+
             let model::CreateLogInfo {
                 title: tit,
                 description: descr,
@@ -196,12 +201,12 @@ pub mod service {
                 end_pressure: end_pres,
                 vawe_power: vawe_pow,
                 side_view: side,
+                site_id: site,
                 water_temperature: water_temp,
                 start_datetime: start_date,
                 end_datetime: end_date,
-                user_id: user,
                 ..
-            } = query;
+            } = body;
 
             let new_loginfo = diesel::insert_into(loginfo)
                 .values((
@@ -215,7 +220,8 @@ pub mod service {
                     water_temperature.eq(water_temp),
                     start_datetime.eq(start_date),
                     end_datetime.eq(end_date),
-                    user_id.eq(user),
+                    site_id.eq(site),
+                    user_id.eq(user_info.id),
                 ))
                 .returning(id)
                 .get_result(&mut self.connection);

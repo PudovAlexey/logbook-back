@@ -78,7 +78,7 @@ pub struct CreateLogInfo {
   pub  water_temperature: Option<f32>,
   pub  start_datetime: NaiveDateTime,
   pub  end_datetime: NaiveDateTime,
-  pub user_id: uuid::Uuid,
+  pub site_id: i32,
 }
 
 #[derive(Serialize, Deserialize, Queryable, QueryableByName, Insertable, Debug, Clone)]
