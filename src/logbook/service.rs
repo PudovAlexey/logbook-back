@@ -1,10 +1,18 @@
 pub mod service {
-    use crate::{logbook::log_list_query::{log_list_query, LogListParams}, users::model::USER};
+    use crate::{
+        dive_sites::model::DiveSite,
+        logbook::log_list_query::{log_list_query, LogListParams},
+        schema::dive_site,
+        users::model::USER,
+    };
 
     use chrono::NaiveDateTime;
 
     use diesel::{
-        prelude::*, r2d2::{ConnectionManager, PooledConnection}, result::Error, sql_query, PgConnection
+        prelude::*,
+        r2d2::{ConnectionManager, PooledConnection},
+        result::Error,
+        sql_query, PgConnection,
     };
     use serde::{Deserialize, Serialize};
 
@@ -24,9 +32,6 @@ pub mod service {
         pub start_date: Option<NaiveDateTime>,
         pub end_date: Option<NaiveDateTime>,
         pub search_query: Option<String>,
-        // pub limit: Option<i64>,
-        // pub offset: Option<i64>,
-        // pub search_query: Option<String>,
     }
 
     #[derive(Deserialize, Debug, Serialize)]
@@ -46,6 +51,11 @@ pub mod service {
         pub id: i32,
     }
 
+    #[derive(Deserialize, Debug, Queryable)]
+    pub struct CREATELogInfoParams {
+        pub body: model::CreateLogInfo,
+        pub user_info: USER,
+    }
 
     impl LogInfoTable {
         pub fn new(connection: PooledPg) -> LogInfoTable {
@@ -71,12 +81,13 @@ pub mod service {
             // } = params.search_params;
 
             let SearchLogsParams {
-                page_size, 
+                page_size,
                 page,
                 start_date,
                 end_date,
                 search_query,
-                 ..} = params.search_params;
+                ..
+            } = params.search_params;
 
             let USER {
                 id: speciphic_id, ..
@@ -94,12 +105,12 @@ pub mod service {
                 start_date,
                 end_date,
                 offset,
-                limit
+                limit,
             });
 
             let res: Vec<model::RequiredSelectListItems> = sql_query(query)
-            .load(&mut self.connection)
-            .expect("error to loading Logbook");
+                .load(&mut self.connection)
+                .expect("error to loading Logbook");
 
             Ok(res)
 
@@ -110,7 +121,6 @@ pub mod service {
             // //     .filter(start_datetime.ge(start_date.unwrap_or_default()))
             // //     .filter(end_datetime.le(end_date.unwrap_or_default()))
             // //     .filter(title.eq(search_query.unwrap_or_default()))
-
 
             // if start_date.is_some() && end_date.is_some() {
             //     query = query
@@ -134,13 +144,23 @@ pub mod service {
         pub fn get_loginfo_by_id(
             &mut self,
             params: GetLogbookByIdParams,
-        ) -> Result<model::LogInfo, diesel::result::Error> {
-            let query = loginfo.filter(id.eq(params.id));
-
-            Ok(query
+        ) -> Result<model::LogInfoWithDive, diesel::result::Error> {
+            let query: model::LogInfo = loginfo
+                .filter(id.eq(params.id))
                 .select(model::LogInfo::as_select())
-                .first(&mut self.connection)
-                .expect("error to loading Logbook"))
+                .first(&mut self.connection)?;
+
+            let dive_site: DiveSite = dive_site::table
+                .filter(dive_site::columns::id.eq(query.site_id))
+                .select(DiveSite::as_select())
+                .first(&mut self.connection)?;
+
+            println!("{:?}", dive_site);
+
+            Ok(model::LogInfoWithDive {
+                log_info: query,
+                dive_site,
+            })
         }
 
         pub fn update_loginfo_by_id(
@@ -187,7 +207,9 @@ pub mod service {
             }
         }
 
-        pub fn create_loginfo(&mut self, query: model::CreateLogInfo) -> Result<i32, Error> {
+        pub fn create_loginfo(&mut self, query: CREATELogInfoParams) -> Result<i32, Error> {
+            let CREATELogInfoParams { body, user_info } = query;
+
             let model::CreateLogInfo {
                 title: tit,
                 description: descr,
@@ -196,12 +218,12 @@ pub mod service {
                 end_pressure: end_pres,
                 vawe_power: vawe_pow,
                 side_view: side,
+                site_id: site,
                 water_temperature: water_temp,
                 start_datetime: start_date,
                 end_datetime: end_date,
-                user_id: user,
                 ..
-            } = query;
+            } = body;
 
             let new_loginfo = diesel::insert_into(loginfo)
                 .values((
@@ -215,7 +237,8 @@ pub mod service {
                     water_temperature.eq(water_temp),
                     start_datetime.eq(start_date),
                     end_datetime.eq(end_date),
-                    user_id.eq(user),
+                    site_id.eq(site),
+                    user_id.eq(user_info.id),
                 ))
                 .returning(id)
                 .get_result(&mut self.connection);
