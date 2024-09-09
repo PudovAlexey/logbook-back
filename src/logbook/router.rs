@@ -168,10 +168,9 @@ pub mod router {
         match log_info_table::new(connection).get_loginfo_by_id(GetLogbookByIdParams { id: id }) {
             Ok(log_item) => Ok((StatusCode::OK, Json(json!({"data": log_item})))),
             Err(err) => {
-                eprintln!("Error reading empire: {:?}", err);
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": "Failed to read empire"})),
+                    Json(json!({"error": err.to_string()})),
                 ))
             }
         }

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono", "uuid", 'serde_json'] }
+diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono", "uuid", "64-column-tables", "numeric", 'serde_json'] }
 dotenvy = "0.15.7"
 tokio = { version = "1", features = ["full"] }
 serde = "1.0"
@@ -37,6 +37,7 @@ base64 = "0.22.0"
 rand = "0.8.5"
 native-tls = "0.2.11"
 lettre_email = "0.9.4"
+bigdecimal = {version = "0.4.5", features= ["serde"]}
 
 [[bin]]
 name = "logbook-app-back"

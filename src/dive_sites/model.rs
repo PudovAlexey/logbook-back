@@ -1,10 +1,13 @@
-use diesel::{deserialize::Queryable, prelude::{Insertable, QueryableByName}, Selectable};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Debug, Selectable, Queryable, ToSchema)]
+use bigdecimal;
+
+
+#[derive(Serialize, Deserialize, Debug, Selectable, Queryable, ToSchema, Identifiable, PartialEq)]
 #[diesel(table_name = crate::schema::dive_site)]
-// #[diesel(check_for_backend(diesel::pg::Pg))]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DiveSite {
     pub id: i32,
     pub title: String,
@@ -14,8 +17,8 @@ pub struct DiveSite {
     pub depth_to: f32,
     pub level: i32,
     pub image_id: i32,
-    pub latitude: f64,
-    pub longitude: f64,
+    pub latitude: bigdecimal::BigDecimal,
+    pub longitude: bigdecimal::BigDecimal,
 }
 
 #[derive(Serialize, Deserialize, Queryable, QueryableByName, Insertable, Debug, Clone)]
