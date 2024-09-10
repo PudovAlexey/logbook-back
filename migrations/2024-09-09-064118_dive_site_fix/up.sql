@@ -1,3 +1,26 @@
-ALTER TABLE your_table
-ALTER COLUMN latitude TYPE FLOAT USING latitude::FLOAT,
-ALTER COLUMN longitude TYPE FLOAT USING longitude::FLOAT;
+CREATE TABLE chat (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    title VARCHAR NOT NULL,
+    description VARCHAR NOT NULL
+);
+
+-- Создание таблицы chat_user
+CREATE TABLE chat_user (
+    id SERIAL PRIMARY KEY,
+    chat_id INTEGER NOT NULL,
+    user_id UUID NOT NULL,
+    FOREIGN KEY (chat_id) REFERENCES chat(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE message(
+ id SERIAL PRIMARY KEY,
+ text VARCHAR NOT NULL,
+ chat_id INTEGER NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP,
+ FOREIGN KEY (chat_id) REFERENCES chat(id) ON DELETE CASCADE
+);
+

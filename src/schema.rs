@@ -9,6 +9,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    chat (id) {
+        id -> Int4,
+        created_at -> Nullable<Timestamp>,
+        updated_at -> Nullable<Timestamp>,
+        title -> Varchar,
+        description -> Varchar,
+    }
+}
+
+diesel::table! {
+    chat_user (id) {
+        id -> Int4,
+        chat_id -> Int4,
+        user_id -> Uuid,
+    }
+}
+
+diesel::table! {
     dive_site (id) {
         id -> Int4,
         title -> Varchar,
@@ -62,6 +80,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    message (id) {
+        id -> Int4,
+        text -> Varchar,
+        chat_id -> Int4,
+        created_at -> Nullable<Timestamp>,
+        updated_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     users (id) {
         #[max_length = 100]
         email -> Varchar,
@@ -85,16 +113,22 @@ diesel::table! {
 }
 
 diesel::joinable!(avatar -> image (image_id));
+diesel::joinable!(chat_user -> chat (chat_id));
+diesel::joinable!(chat_user -> users (user_id));
 diesel::joinable!(dive_site -> image (image_id));
 diesel::joinable!(log_image -> image (image_id));
 diesel::joinable!(loginfo -> dive_site (site_id));
 diesel::joinable!(loginfo -> users (user_id));
+diesel::joinable!(message -> chat (chat_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     avatar,
+    chat,
+    chat_user,
     dive_site,
     image,
     log_image,
     loginfo,
+    message,
     users,
 );

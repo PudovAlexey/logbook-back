@@ -9,10 +9,14 @@ pub mod api_doc {
     use crate::users;
     use crate::images;
     use crate::dive_sites;
+    use crate::dive_chat;
 
     #[derive(OpenApi)]
     #[openapi(
         paths(
+            dive_chat::router::get_chat_list,
+            dive_chat::router::get_messages_by_id,
+
             dive_sites::router::get_dive_site_list,
 
             logbook::router::router::get_logbook_list,
@@ -29,6 +33,10 @@ pub mod api_doc {
             users::router::router::remove_accaunt_handler,
         ),
         components(
+            schemas(dive_chat::model::Message),
+            schemas(dive_chat::model::ChatUser),
+            schemas(dive_chat::model::Chat),
+
             schemas(logbook::model::LogInfo),
             schemas(logbook::model::UpdateLogInfo),
             schemas(logbook::model::CreateLogInfo),
@@ -36,6 +44,7 @@ pub mod api_doc {
             schemas(users::model::LoginUser),
             schemas(users::model::ResetPassword),
             schemas(users::model::VerifyUserCode),
+            schemas(users::model::USER),
             schemas(images::model::CreateImageQuery),
         ),
         modifiers(&SecurityAddon),

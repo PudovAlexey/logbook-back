@@ -3,3 +3,9 @@
 -- ORDER BY  similarity_title DESC, similarity_descr DESC
 -- OFFSET 1
 -- LIMIT 100;
+
+-- INSERT INTO - Создание
+
+-- ISO String для СЕРДЕ!!!
+
+-- SELECT * FROM chat_user LEFT JOIN chat ON chat_user.chat_id = chat.id WHERE chat_user.user_id = 'be3b1cd0-cfa5-41fb-afe0-ec65dfa36162'
