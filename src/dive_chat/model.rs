@@ -3,7 +3,7 @@ use chrono::NaiveDateTime;
 use utoipa::ToSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, PartialEq, ToSchema, Identifiable, Associations)]
+#[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, PartialEq, ToSchema, Identifiable, Associations)]
 #[diesel(table_name = crate::schema::message)]
 #[diesel(belongs_to(Chat, foreign_key = chat_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]

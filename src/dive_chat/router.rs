@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use crate::users::auth::auth;
 use crate::users::model::USER;
 
 use crate::dive_chat::service;
+use crate::SharedState;
 use axum::Json;
 use axum::{response::IntoResponse, Router};
 
@@ -12,20 +15,20 @@ use serde_json::Value;
 use axum::extract::{Extension, Path, State};
 use axum::middleware;
 
-
-use crate::common::db::ConnectionPool;
 use http::StatusCode;
 
 const CHAT_ENDPOINTS: &str = "/chat/";
 
-pub fn chat_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
+pub fn chat_sites_routes(shared_state: Arc<SharedState>) -> Router {
+    let connection_pool = shared_state.connection_pool.clone();
+
     Router::new()
         .route(
             &format!("{}chats", CHAT_ENDPOINTS),
-            axum::routing::get(get_chat_list).route_layer(middleware::from_fn_with_state(shared_connection_pool.clone(), auth))
+            axum::routing::get(get_chat_list).route_layer(middleware::from_fn_with_state(connection_pool, auth))
         )
         .route(&format!("{}messages/:id", CHAT_ENDPOINTS), axum::routing::get(get_messages_by_id))
-        .with_state(shared_connection_pool)
+        .with_state(shared_state)
 }
 
 #[utoipa::path(
@@ -37,10 +40,10 @@ pub fn chat_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
 )]
 
 pub async fn get_chat_list(
-    State(shared_state): State<ConnectionPool>,
+    State(shared_state):State<Arc<SharedState>>,
     Extension(user): Extension<USER>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    let connection = shared_state.pool.get().expect("Failed connection to POOL");
+    let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
 
     match service::get_chat_list_by_user_id(connection, service::ChatListByUserIdParams {
         id: user.id,
@@ -72,10 +75,12 @@ pub async fn get_chat_list(
 )]
 
 pub async fn get_messages_by_id(
-    State(shared_state): State<ConnectionPool>,
+    State(shared_state): State<Arc<SharedState>>,
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    let connection = shared_state.pool.get().expect("Failed connection to POOL");
+    // app_state.waiting_queue.read().await
+    let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
+    // let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
     match service::get_message_list_by_id(connection, service::GetMessageListByIdParams {
         id

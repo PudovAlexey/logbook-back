@@ -15,6 +15,7 @@ pub struct ENV {
    pub smtp_transport: String,
    pub redis_port: String,
    pub app_port: u16,
+   pub kafka_port: String,
 }
 
 impl ENV {
@@ -32,6 +33,7 @@ impl ENV {
             smtp_transport: load_env_variable("SMTP_TRANSPORT"),
             redis_port: load_env_variable("REDIS_PORT"),
             app_protocol: load_env_variable("APP_PROTOCOL"),
+            kafka_port: load_env_variable("KAFKA_PORT"),
         }
     }
 }

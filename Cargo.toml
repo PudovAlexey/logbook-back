@@ -38,6 +38,9 @@ rand = "0.8.5"
 native-tls = "0.2.11"
 lettre_email = "0.9.4"
 bigdecimal = {version = "0.4.5", features= ["serde"]}
+socketioxide = "0.14.1"
+tracing = "0.1.40"
+kafka = "0.10.0"
 
 [[bin]]
 name = "logbook-app-back"
