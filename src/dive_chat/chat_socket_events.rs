@@ -8,6 +8,7 @@ use socketioxide::extract::{
     AckSender,
     Bin
 };
+use std::thread;
 use tracing::info;
 
 use crate::dive_chat::chat_consumer::ChatConsumer;
@@ -28,34 +29,17 @@ pub fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     // );
 
     // std::thread::spawn(move || {
+      thread::spawn(move || {
         loop {
-            for ms in consumer.consume_events().iter() {
-              for m in ms.messages() {
-        
-                // when the consumer receives an event, this block is executed 
-                let event_data = ChatConsumer::get_new_messages_by_chat_id(m);
-                socket.emit("hello_world", "Hello Братан").ok();
-                println!("you can send message {:?}", event_data);
-                // let action = event_data["action"].to_string();
-                
-                // println!("{}", texts.to_json());
-                // if action == "\"add\"" {
-                //   texts.add_text( event_data["value"].to_string() );
-        
-                // } else if action == "\"remove\"" {
-                //   let index = event_data["value"].to_string().parse::<usize>().unwrap();
-                //   texts.remove_text( index );
-        
-                // } else {
-                //   println!("Invalid action");
-                // }
-        
-        
-                // producer.send_data_to_topic( "texts", texts.to_json() );
-              }
-              consumer.consume_messageset(ms);
+          for ms in consumer.consume_events().iter() {
+            for m in ms.messages() {
+              let event_data = ChatConsumer::get_new_messages_by_chat_id(m);
+              socket.emit("hello_world", event_data.to_string()).ok();
             }
-            consumer.commit_consumed();
+            consumer.consume_messageset(ms);
           }
+          consumer.commit_consumed();
+        }
+      });
     // });
 }
