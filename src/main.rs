@@ -23,7 +23,7 @@ use utoipa_redoc::{Redoc, Servable};
     
 use tokio::net::TcpListener;
 
-use dive_chat::{chat_producer::ChatProducer, chat_socket_events::on_connect};
+use dive_chat::{chat_producer::ChatProducer, chat_socket_events::on_connect, chat_consumer::ChatConsumer};
 
 
 use std::{net::SocketAddr, sync::Arc};
@@ -60,7 +60,7 @@ async fn main() {
 
     let shared_state = Arc::new(SharedState {
         connection_pool: shared_connection_pool.clone(),
-        chat_producer
+        chat_producer,
     });
 
 

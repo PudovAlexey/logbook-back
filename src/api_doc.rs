@@ -16,6 +16,8 @@ pub mod api_doc {
         paths(
             dive_chat::router::get_chat_list,
             dive_chat::router::get_messages_by_id,
+            dive_chat::router::create_chat,
+            dive_chat::router::create_message,
 
             dive_sites::router::get_dive_site_list,
 
@@ -36,6 +38,9 @@ pub mod api_doc {
             schemas(dive_chat::model::Message),
             schemas(dive_chat::model::ChatUser),
             schemas(dive_chat::model::Chat),
+            schemas(dive_chat::service::CreateChatParams),
+            schemas(dive_chat::service::CreateMessageParams),
+            schemas(dive_chat::router::MessageText),
 
             schemas(logbook::model::LogInfo),
             schemas(logbook::model::UpdateLogInfo),
