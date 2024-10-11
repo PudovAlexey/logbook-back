@@ -9,3 +9,7 @@
 -- ISO String для СЕРДЕ!!!
 
 -- SELECT * FROM chat_user LEFT JOIN chat ON chat_user.chat_id = chat.id WHERE chat_user.user_id = 'be3b1cd0-cfa5-41fb-afe0-ec65dfa36162'
+
+-- ./bin/kafka-topics.sh --create --topic dive_messages --bootstrap-server localhost:9092
+
+

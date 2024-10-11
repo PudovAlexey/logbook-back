@@ -6,16 +6,16 @@ edition = "2021"
 [dependencies]
 diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono", "uuid", "64-column-tables", "numeric", 'serde_json'] }
 dotenvy = "0.15.7"
-tokio = { version = "1", features = ["full"] }
-serde = "1.0"
+tokio = { version = "1.40.0", features = ["full"] }
+serde = "1.0.210"
 serde_derive = "1.0"
-axum-extra = { version = "0.9.2", features = ["cookie"] }
-serde_json = "1.0"
+axum-extra = { version = "0.9.4", features = ["cookie"] }
+serde_json = "1.0.128"
 axum = { version = "0.7.4", features = ['multipart']}
-tower-http = { version = "0.5.1", features = ["trace", "cors", "fs"] }
-tower = { version = "0.5.0", features = ["util"] }
-hyper = "1.1.0"
-regex = "1.5"
+tower-http = { version = "0.6.1", features = ["trace", "cors", "fs"] }
+tower = { version = "0.5.1", features = ["util"] }
+hyper = "1.4.1"
+regex = "1.11.0"
 jsonwebtoken = "9.2.0"
 bcrypt = "0.15.0"
 http = "1.0.0"
@@ -24,23 +24,24 @@ utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
 utoipa-redoc = { version = "4.0.0", features = ["axum"] }
 utoipa-rapidoc = { version = "4.0.0", features = ["axum"] }
 chrono = {version = "0.4.34", features = ['serde']}
-cargo-watch = "8.5.2"
-lettre = {version = "0.11.4", features = []}
+cargo-watch = "8.5.3"
+lettre = {version = "0.11.9", features = []}
 argon2 = "0.5.3"
 rand_core = "0.6.4"
-uuid = { version = "1.7.0", features = ["serde", "v4"] }
-time = "0.3.20"
-redis = "0.26.1"
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
+time = "0.3.36"
+redis = "0.27.4"
 image = "0.25.0"
 multipart = "0.18.0"
-base64 = "0.22.0"
+base64 = "0.22.1"
 rand = "0.8.5"
 native-tls = "0.2.11"
 lettre_email = "0.9.4"
 bigdecimal = {version = "0.4.5", features= ["serde"]}
-socketioxide = "0.14.1"
+socketioxide = {version = "0.14.1", features = ["state"]}
 tracing = "0.1.40"
 kafka = "0.10.0"
+tracing-subscriber = "0.3.18"
 
 [[bin]]
 name = "logbook-app-back"
