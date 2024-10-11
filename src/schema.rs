@@ -86,6 +86,7 @@ diesel::table! {
         chat_id -> Int4,
         created_at -> Nullable<Timestamp>,
         updated_at -> Nullable<Timestamp>,
+        user_id -> Nullable<Uuid>,
     }
 }
 
@@ -120,6 +121,7 @@ diesel::joinable!(log_image -> image (image_id));
 diesel::joinable!(loginfo -> dive_site (site_id));
 diesel::joinable!(loginfo -> users (user_id));
 diesel::joinable!(message -> chat (chat_id));
+diesel::joinable!(message -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     avatar,

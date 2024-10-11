@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::dive_chat::model::{
-    Chat, ChatUser, Message
+    Chat, ChatUser, Message, UserWithAuthor
 };
 
 type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
@@ -16,6 +16,8 @@ type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
 use crate::schema::chat;
 use crate::schema::chat_user;
 use crate::schema::message;
+use crate::schema::users;
+use crate::users::model::USER;
 
 use super::chat_producer::ChatProducer;
 
@@ -50,17 +52,30 @@ pub struct GetMessageListByIdParams {
    pub id: i32,
 }
 
-pub fn get_message_list_by_id(connection: PooledPg, params: GetMessageListByIdParams) -> Result<Vec<Message>, diesel::result::Error> {
+pub fn get_message_list_by_id(connection: PooledPg, params: GetMessageListByIdParams) -> Result<Vec<UserWithAuthor>, diesel::result::Error> {
     let GetMessageListByIdParams {id: chat_id} = params;
 
     let mut connection = connection;
 
-    let message_data = message::table
+    let message_data: Vec<(Message, Option<USER>)> = message::table
+    .left_join(users::table.on(message::columns::user_id.eq(users::columns::id.nullable())))
     .filter(message::columns::chat_id.eq(chat_id))
-    .select(Message::as_select())
+    .select((Message::as_select(), Option::<USER>::as_select()))
     .load(&mut connection)?;
 
-    Ok(message_data)
+    let map_messages = message_data.iter().map(|(message, author)| {
+        UserWithAuthor {
+            message: (*message).clone(),
+            author: author.clone(),
+        }
+    }).collect();
+
+    // Ok(UserWithAuthor {
+    //     message: message_data[0],
+    //     author: message_data[1]
+    // })
+
+    Ok(map_messages)
 }
 
 
@@ -103,17 +118,20 @@ pub fn create_chat_mutation(connection: PooledPg, params: CreateChatParams) -> R
 pub struct CreateMessageParams {
    pub chat_id: i32,
    pub text: String,
+   pub user: USER,
 }
 
 pub fn create_message_mutation(connection: PooledPg, params: CreateMessageParams, chat_oriducer:  ChatProducer) -> Result<i32, diesel::result::Error> {
-    let CreateMessageParams {chat_id, text} = params;
+    let CreateMessageParams {chat_id, text, user} = params;
 
     let mut connection = connection;
+    let user_id = user.id;
 
     let new_message: Message = diesel::insert_into(message::table)
     .values((
         message::columns::chat_id.eq(chat_id),
         message::columns::text.eq(text),
+        message::columns::user_id.eq(user_id),
     ))
     .returning(Message::as_select())
     .get_result(&mut connection)?;
@@ -121,7 +139,10 @@ pub fn create_message_mutation(connection: PooledPg, params: CreateMessageParams
     let Message {id: message_id, ..} = new_message;
     let mut mut_chat_producer = chat_oriducer;
 
-    mut_chat_producer.send_message("dive_messages", new_message);
+    mut_chat_producer.send_message("dive_messages", UserWithAuthor {
+        message: new_message,
+        author: Some(user),
+    });
 
     Ok(message_id)
 }

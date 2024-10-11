@@ -34,7 +34,7 @@ pub fn chat_sites_routes(shared_state: Arc<SharedState>) -> Router {
             &format!("{}create_chat", CHAT_ENDPOINTS), 
             axum::routing::post(create_chat).route_layer(middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth))
         )
-        .route(&format!("{}create_message/:id", CHAT_ENDPOINTS), axum::routing::post(create_message))
+        .route(&format!("{}create_message/:id", CHAT_ENDPOINTS), axum::routing::post(create_message).route_layer(middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth)))
         .with_state(shared_state)
 }
 
@@ -156,6 +156,7 @@ pub struct MessageText {
 
 
 pub async fn create_message(
+    Extension(user): Extension<USER>,
     State(shared_state): State<Arc<SharedState>>,
     Path(id): Path<i32>,
     Json(body): Json<MessageText>,
@@ -169,7 +170,8 @@ pub async fn create_message(
 
     match service::create_message_mutation(connection, service::CreateMessageParams {
         chat_id: id,
-        text: body.text
+        text: body.text,
+        user,
     }, chat_producer) {
         Ok(message_id) => {
             Ok((

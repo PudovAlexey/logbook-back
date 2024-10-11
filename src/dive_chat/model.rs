@@ -3,7 +3,9 @@ use chrono::NaiveDateTime;
 use utoipa::ToSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, PartialEq, ToSchema, Identifiable, Associations)]
+use crate::users::model::USER;
+
+#[derive(Clone, Serialize, Deserialize, Insertable, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::message)]
 #[diesel(belongs_to(Chat, foreign_key = chat_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -12,7 +14,14 @@ pub struct Message {
    pub text: String,
    pub chat_id: i32,
    pub created_at: Option<NaiveDateTime>,
-   pub updated_at: Option<NaiveDateTime>
+   pub updated_at: Option<NaiveDateTime>,
+   pub user_id: Option<uuid::Uuid>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct UserWithAuthor {
+   pub message: Message,
+   pub author: Option<USER>
 }
 
 #[derive(Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize, ToSchema)]

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use kafka::producer::{Producer, Record};
 use serde_json;
 
-use super::model::Message;
+use super::model::{Message, UserWithAuthor};
 
 #[derive(Clone)]
 pub struct ChatProducer {
@@ -23,7 +23,7 @@ impl ChatProducer {
     }
     }
 
-    pub fn send_message(&mut self, topic: &str, data: Message) {
+    pub fn send_message(&mut self, topic: &str, data: UserWithAuthor) {
         let json = serde_json::to_string(&data).unwrap();
         let record = Record::from_value(topic, json);
         let mut producer = self.producer.lock().unwrap();

@@ -1,6 +1,5 @@
-use crate::{dive_chat::{chat_socket::{event_emmiters::SEND_MESSAGE, model::{ChatSocketResponseSchema, ResponseStatus}}, model::Message, test_state}, users::model::USER};
+use crate::{dive_chat::{chat_socket::{event_emmiters::SEND_MESSAGE, model::{ChatSocketResponseSchema, ResponseStatus}}, model::{Message, UserWithAuthor}, test_state}, users::model::USER};
 use diesel::r2d2::event;
-use serde_json::Value;
 
 use socketioxide::{
     extract::{Data, SocketRef, State},
@@ -51,12 +50,14 @@ pub async fn on_connect(socket: SocketRef) {
                     for m in ms.messages() {
                         let event_data = ChatConsumer::get_new_messages_by_chat_id(m);
                         let socket = socket.lock().unwrap();
-                        let message: Result<Message, serde_json::Error> =
+                        let message: Result<UserWithAuthor, serde_json::Error> =
                         serde_json::from_value(event_data.clone());
+
+                        println!("{:?}", message);
                         
                         match message {
                             Ok(mess) => {
-                                if mess.chat_id == room {
+                                if mess.message.chat_id == room {
                                     let responce = ChatSocketResponseSchema {
                                         status: ResponseStatus::Success,
                                         data: event_data.to_string(),

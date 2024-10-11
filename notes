@@ -13,3 +13,7 @@
 -- ./bin/kafka-topics.sh --create --topic dive_messages --bootstrap-server localhost:9092
 
 
+-- ./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic dive_messages --from-beginning
+
+
+-- ./bin/kafka-topics.sh --delete --topic dive_messages --bootstrap-server localhost:9092
