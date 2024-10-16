@@ -19,7 +19,7 @@ use crate::schema::message;
 use crate::schema::users;
 use crate::users::model::USER;
 
-use super::chat_producer::ChatProducer;
+use super::kafka_chat_handler::KafkaChatHandler;
 
 pub fn get_chat_list_by_user_id( connection: PooledPg, params: ChatListByUserIdParams) -> Result<Vec<Chat>, diesel::result::Error> {
 
@@ -121,7 +121,7 @@ pub struct CreateMessageParams {
    pub user: USER,
 }
 
-pub fn create_message_mutation(connection: PooledPg, params: CreateMessageParams, chat_oriducer:  ChatProducer) -> Result<i32, diesel::result::Error> {
+pub fn create_message_mutation(connection: PooledPg, params: CreateMessageParams, chat_oriducer:  KafkaChatHandler) -> Result<i32, diesel::result::Error> {
     let CreateMessageParams {chat_id, text, user} = params;
 
     let mut connection = connection;

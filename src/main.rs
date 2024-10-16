@@ -25,7 +25,7 @@ use utoipa_redoc::{Redoc, Servable};
     
 use tokio::net::TcpListener;
 
-use dive_chat::{chat_consumer::ChatConsumer, chat_producer::ChatProducer, chat_socket::chat_socket_events::{on_connect, ChatSocketState}};
+use dive_chat::{kafka_chat_handler::KafkaChatHandler, chat_socket::chat_socket_events::{on_connect, ChatSocketState}};
 
 
 use std::{net::SocketAddr, sync::Arc};
@@ -41,7 +41,7 @@ use crate::common::db::ConnectionPool;
 
 pub struct SharedState {
    pub connection_pool: ConnectionPool,
-   pub chat_producer: ChatProducer,
+   pub kafka_chat_handler: KafkaChatHandler,
 }
 use tower::ServiceBuilder;
 
@@ -53,8 +53,9 @@ async fn handler(axum::extract::State(io): axum::extract::State<SocketIo>) {
 #[tokio::main]
 async fn main() {
     let hosts = vec![ "localhost:9092".to_string() ];
-    let mut chat_producer = ChatProducer::new( hosts.clone() );
-    let mut chat_consumer = ChatConsumer::new(hosts.clone(), String::from("dive_messages"));
+    let mut kafka_chat_handler = KafkaChatHandler::new(hosts.clone(), String::from("dive_messages"))
+    .await
+    .unwrap();
     let db_url = ENV::new().database_url;
     let api_host = ENV::new().app_host;
     let app_port: u16 = ENV::new().app_port;
@@ -63,7 +64,7 @@ async fn main() {
     let address = SocketAddr::from((api_host, app_port));
 
     let (layer, io) = SocketIo::builder().with_state(ChatSocketState {
-        chat_consumer,
+        kafka_chat_handler: kafka_chat_handler.clone(),
     }).build_layer();
 
     io.ns("/", on_connect);
@@ -71,7 +72,7 @@ async fn main() {
 
     let shared_state = Arc::new(SharedState {
         connection_pool: shared_connection_pool.clone(),
-        chat_producer,
+        kafka_chat_handler,
     });
 
 

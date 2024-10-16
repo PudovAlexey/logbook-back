@@ -1,17 +1,12 @@
-use crate::{dive_chat::{chat_socket::{event_emmiters::SEND_MESSAGE, model::{ChatSocketResponseSchema, ResponseStatus}}, model::{Message, UserWithAuthor}, test_state}, users::model::USER};
-use diesel::r2d2::event;
+use crate::{dive_chat::{chat_socket::{event_emmiters::SEND_MESSAGE, model::{ChatSocketResponseSchema, ResponseStatus}}, kafka_chat_handler::KafkaChatHandler, model::{Message, UserWithAuthor}, test_state}, users::model::USER};
 
 use socketioxide::{
     extract::{Data, SocketRef, State},
-    SocketIo,
 };
 use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use tracing::info;
-
-use crate::dive_chat::chat_consumer::ChatConsumer;
 
 use super::event_emmiters::{JOIN, ON_CONNECT};
 
@@ -28,7 +23,7 @@ struct MessageIn {
 
 #[derive(Clone)]
 pub struct ChatSocketState {
-    pub chat_consumer: ChatConsumer,
+    pub kafka_chat_handler: KafkaChatHandler,
 }
 
 pub async fn on_connect(socket: SocketRef) {
@@ -42,13 +37,13 @@ pub async fn on_connect(socket: SocketRef) {
         |socket: SocketRef, Data::<i32>(room), store: State<ChatSocketState>| {
             println!("room connected, {}", room);
 
-            let mut consumer = store.chat_consumer.clone();
+            let mut consumer = store.kafka_chat_handler.clone();
             let socket = Arc::new(Mutex::new(socket));
 
             thread::spawn(move || loop {
                 for ms in consumer.consume_events().iter() {
                     for m in ms.messages() {
-                        let event_data = ChatConsumer::get_new_messages_by_chat_id(m);
+                        let event_data = KafkaChatHandler::get_new_messages_by_chat_id(m);
                         let socket = socket.lock().unwrap();
                         let message: Result<UserWithAuthor, serde_json::Error> =
                         serde_json::from_value(event_data.clone());

@@ -165,7 +165,7 @@ pub async fn create_message(
 
     let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
 
-    let chat_producer = shared_state.chat_producer.clone();
+    let chat_producer = shared_state.kafka_chat_handler.clone();
 
 
     match service::create_message_mutation(connection, service::CreateMessageParams {
