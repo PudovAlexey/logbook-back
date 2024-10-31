@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use super::event_emmiters::{JOIN, ON_CONNECT};
+use super::{event_emmiters::{JOIN, ON_CONNECT}, model::MessageParams};
 
 #[derive(serde::Serialize)]
 struct Messages {
@@ -34,8 +34,8 @@ pub async fn on_connect(socket: SocketRef) {
 
     socket.on(
         JOIN,
-        |socket: SocketRef, Data::<i32>(room), store: State<ChatSocketState>| {
-            println!("room connected, {}", room);
+        |socket: SocketRef, Data::<MessageParams>(room), store: State<ChatSocketState>| {
+            println!("room connected, {}", room.room_id);
 
             let mut consumer = store.kafka_chat_handler.clone();
             let socket = Arc::new(Mutex::new(socket));
@@ -48,18 +48,35 @@ pub async fn on_connect(socket: SocketRef) {
                         let message: Result<UserWithAuthor, serde_json::Error> =
                         serde_json::from_value(event_data.clone());
 
+    
                         println!("{:?}", message);
-                        
                         match message {
                             Ok(mess) => {
-                                if mess.message.chat_id == room {
-                                    let responce = ChatSocketResponseSchema {
-                                        status: ResponseStatus::Success,
-                                        data: event_data.to_string(),
-                                    };
-
-                                    socket.emit(SEND_MESSAGE, responce).ok();
+                                match mess.author {
+                                    Some(author) => {
+                                        
+                                        if author.id != room.user_uuid {
+                                            let responce = ChatSocketResponseSchema {
+                                                status: ResponseStatus::Success,
+                                                data: event_data.to_string(),
+                                            };
+                                            
+                                        
+                                            socket.emit(SEND_MESSAGE, event_data.to_string()).ok();
+                                        }
+                                    },
+                                    None => {
+                                        println!("error")
+                                    }
                                 }
+                                // if mess.author != room.user_uuid {
+                                //     let responce = ChatSocketResponseSchema {
+                                //         status: ResponseStatus::Success,
+                                //         data: event_data.to_string(),
+                                //     };
+
+                                //     socket.emit(SEND_MESSAGE, responce).ok();
+                                // }
                             }
                             Err(error) => {
                                 println!("failed to parse message")
