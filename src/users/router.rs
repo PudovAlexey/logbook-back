@@ -1,11 +1,15 @@
+use crate::common::env::ENV;
 pub mod router {
     extern crate image;
+    use crate::common::env::ENV;
     use crate::common::error_boundary::error_boundary::{self, BoundaryHandlers, FieldError, InsertFieldError};
     use crate::common::jwt::{is_valid_token, remove_jwt_cookie, JWTToken, JWT};
     use crate::common::multipart::ImageMultipart;
     use crate::common::redis::{Redis, SetExpireItem};
 
     extern crate rand;
+    use lettre_email::mime::JSON;
+    
     use rand::Rng;
     use serde::Deserialize;
     use argon2::PasswordVerifier;
@@ -63,7 +67,9 @@ pub mod router {
             .route("/verification_code/:email", axum::routing::post(request_verification_code))
             // .route("/forgot_password/", axum::routing::post(forgot_password_handler).route_layer(auth_middleware.clone()))
             .route("/reset_password/:email", axum::routing::post(reset_password_handler))
-            .route("/set_avatar/:id", axum::routing::post(set_user_avatar).route_layer(auth_middleware.clone()))
+            // .route("/set_avatar/:id", axum::routing::post(set_user_avatar).route_layer(auth_middleware.clone()))
+            .route("/set_avatar/:id", axum::routing::post(set_user_avatar))
+            .route("/get_avatar/:id", axum::routing::post(get_user_avatar).route_layer(auth_middleware.clone()))
             .route("/remove_account/:id", axum::routing::get(remove_accaunt_handler).route_layer(auth_middleware.clone()))
             .with_state(shared_connection_pool)
     }
@@ -416,13 +422,22 @@ pub mod router {
         if new_dir.is_ok() {
             let mut file = File::create(&path).unwrap();
             file.write_all(&image.image_vec).unwrap();
-            let img = image::open(&path).unwrap().crop(
-                image.crop.x,
-                image.crop.y,
-                image.crop.width,
-                image.crop.height,
-            );
-            img.save(&path).unwrap();
+            
+            let img = image::open(&path).unwrap();
+
+            if image.crop.width > 0 && image.crop.height > 0 {
+                // Если параметры обрезки корректные, обрезаем изображение
+                let cropped_img = img.clone().crop(
+                    image.crop.x,
+                    image.crop.y,
+                    image.crop.width,
+                    image.crop.height,
+                );
+                cropped_img.save(&path).unwrap();
+            } else {
+                // Если параметры обрезки не переданы, сохраняем оригинальное изображение
+                img.save(&path).unwrap();
+            }
 
             let avatar_query = ImagesTable::new(connection).set_avatar(CreateAvatarQuery {
                 user_id: id,
@@ -463,6 +478,34 @@ pub mod router {
                 Json(json!({"detail": "failed to create directory"})),
             ))
         }
+    }
+
+    #[utoipa::path(
+        post,
+        path = "/get_avatar/{id}",
+        params(
+            ("id" = uuid::Uuid, Path, description="Element id"),
+        ),
+    )]
+
+    pub async fn get_user_avatar(
+        Path(id): Path<uuid::Uuid>,
+        State(shared_state): State<ConnectionPool>,
+    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+
+        match ImagesTable::new(connection).get_user_avatar_data(id)  {
+            Ok(data) => {
+                Ok((StatusCode::OK, Json(json!({"data": format!("{}{}:{}/{}", ENV::new().app_protocol, ENV::new().app_host, ENV::new().app_port, data) }))))
+            }
+            Err(error) => {
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"err": error.to_string()})),
+                ))
+            }
+        }
+
     }
 
     // #[utoipa::path](

@@ -5,16 +5,22 @@ pub mod service {
     
 
     use diesel::{
-        prelude::*,
-        r2d2::{ConnectionManager, PooledConnection},
-        ExpressionMethods, PgConnection, RunQueryDsl,
+        prelude::*, r2d2::{ConnectionManager, PooledConnection}, sql_query, ExpressionMethods, PgConnection, RunQueryDsl
     };
+
+    use diesel::sql_types::Text;
 
     type PooledPg = PooledConnection<ConnectionManager<PgConnection>>;
 
     pub struct ImagesTable {
         connection: PooledPg,
     }
+
+    #[derive(QueryableByName)]
+    struct ImagePath {
+    #[sql_type = "Text"]
+    path: String,
+}
 
     impl ImagesTable {
         pub fn new(connection: PooledPg) -> ImagesTable {
@@ -72,6 +78,26 @@ pub mod service {
                 Err(err)
             }
         }
+
+
+        pub fn get_user_avatar_data(&mut self, user_id: uuid::Uuid) -> Result<String, diesel::result::Error> {
+            let query: String = format!("SELECT image.path FROM users 
+             LEFT JOIN avatar ON users.avatar_id = avatar.id 
+             LEFT JOIN image ON avatar.image_id = image.id WHERE users.id = '{}'", user_id);
+    
+            let results: Vec<ImagePath> = sql_query(query)
+                .bind::<diesel::sql_types::Uuid, _>(user_id)
+                .load(&mut self.connection)
+                .expect("Error loading image paths");
+    
+          
+            match results.get(0) {
+                Some(res) => Ok(res.path.clone()),
+                None => Err(diesel::result::Error::NotFound),
+            }
+        }
+        
+    
 
         pub fn get_avatar_data(&mut self, avatar_id: i32)-> Result<AvatarInfo, diesel::result::Error> {
             use crate::schema::avatar;
