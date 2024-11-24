@@ -34,6 +34,7 @@ pub mod api_doc {
             users::router::router::reset_password_handler,
             users::router::router::remove_accaunt_handler,
             users::router::router::get_user_avatar,
+            users::router::router::get_user_avatar_v2,
         ),
         components(
             schemas(dive_chat::model::Message),

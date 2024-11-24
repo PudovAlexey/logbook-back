@@ -14,7 +14,7 @@ pub async fn user_runtime_scheduler(connection: PooledPg) {
       let _ =  UserTable::new(connection).remove_un_verified_users();
     }
 
-    
+    println!("test");
     
     let interval = Duration::from_secs(86400);
   periodic_task(connection).await;

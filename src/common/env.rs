@@ -16,6 +16,7 @@ pub struct ENV {
    pub redis_port: String,
    pub app_port: u16,
    pub kafka_port: String,
+   pub ya_cloud_token: String,
 }
 
 impl ENV {
@@ -34,6 +35,7 @@ impl ENV {
             redis_port: load_env_variable("REDIS_PORT"),
             app_protocol: load_env_variable("APP_PROTOCOL"),
             kafka_port: load_env_variable("KAFKA_PORT"),
+            ya_cloud_token: load_env_variable("YA_CLOUD_TOKEN")
         }
     }
 }

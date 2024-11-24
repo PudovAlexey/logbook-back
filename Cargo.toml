@@ -43,6 +43,8 @@ tracing = "0.1.40"
 kafka = "0.10.0"
 tracing-subscriber = "0.3.18"
 rdkafka = "0.36.2"
+security-framework = { version = "3.0.1" }
+reqwest = "0.12.9"
 
 [[bin]]
 name = "logbook-app-back"
