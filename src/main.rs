@@ -117,6 +117,7 @@ async fn main() {
     let _res = axum::serve(listener.unwrap(), app.into_make_service())
         .await
         .unwrap();
+    
     common::runtime_scheduler::runtime_scheduler(
         shared_connection_pool.clone().pool.get().unwrap(),
     )

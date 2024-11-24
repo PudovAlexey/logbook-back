@@ -153,7 +153,7 @@ impl From<USER> for UserRemoveSensitiveInfo {
             ..
         } = value;
 
-        return UserRemoveSensitiveInfo {
+         UserRemoveSensitiveInfo {
             id,
             email,
             name,
@@ -164,7 +164,7 @@ impl From<USER> for UserRemoveSensitiveInfo {
             updated_at,
             date_of_birth,
             avatar_url: None,
-        };
+        }
     }
 }
 

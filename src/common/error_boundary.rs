@@ -54,7 +54,7 @@ pub mod error_boundary {
         }
 
         fn send(self, res: Json<Value>) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-            if self.value.len() > 0 {
+            if !self.value.is_empty() {
                 Err((
                     StatusCode::UNPROCESSABLE_ENTITY,
                     Json(json!({"detail": self.value})),

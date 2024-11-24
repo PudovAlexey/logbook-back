@@ -1,4 +1,5 @@
 pub mod router {
+    use reqwest::header::HeaderValue;
     extern crate image;
     use crate::common::env::ENV;
     use crate::common::error_boundary::error_boundary::{
@@ -9,7 +10,6 @@ pub mod router {
     use crate::common::redis::{Redis, SetExpireItem};
 
     extern crate rand;
-    
 
     use argon2::PasswordVerifier;
     use axum::extract::{Path, Query, State};
@@ -259,7 +259,7 @@ pub mod router {
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let mut error_boundary = error_boundary::ObjectError::new();
 
-        let validators = vec![body.clone().password_verify(), body.clone().email_verify()];
+        let validators = [body.clone().password_verify(), body.clone().email_verify()];
         let mut fire_error = false;
 
         for (index, field) in validators.iter().enumerate() {
@@ -411,38 +411,38 @@ pub mod router {
         State(shared_state): State<ConnectionPool>,
         multipart: axum::extract::Multipart,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let image = ImageMultipart::new(multipart).await;
-        let dir_path = "assets/avatar";
-        let current_dir = env::current_dir().unwrap();
-        let path = format!("{}/{}", &dir_path, &image.filename);
-        let dir = current_dir.join(dir_path);
-        let new_dir = DirBuilder::new().recursive(true).create(dir);
+
         let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let mut headers = HeaderMap::new();
+        let header_string = format!("Api-Key {}", ENV::new().ya_cloud_token);
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_str(&header_string).unwrap(),
+        );
+        headers
+        .insert("Content-Type", HeaderValue::from_str("image/jpeg").unwrap());
 
-        if new_dir.is_ok() {
-            let mut file = File::create(&path).unwrap();
-            file.write_all(&image.image_vec).unwrap();
+        let image = ImageMultipart::new(multipart).await;
 
-            let img = image::open(&path).unwrap();
+        let image_path = format!(
+            "https://storage.yandexcloud.net/useravatars123/{}",
+            image.filename
+        );
 
-            if image.crop.width > 0 && image.crop.height > 0 {
-                // Если параметры обрезки корректные, обрезаем изображение
-                let cropped_img = img.clone().crop(
-                    image.crop.x,
-                    image.crop.y,
-                    image.crop.width,
-                    image.crop.height,
-                );
-                cropped_img.save(&path).unwrap();
-            } else {
-                // Если параметры обрезки не переданы, сохраняем оригинальное изображение
-                img.save(&path).unwrap();
-            }
+        let response = reqwest::Client::new()
+            .put(&image_path)
+            .headers(headers)
+            .body(image.image_vec)
+            .send()
+            .await;
+
+        if response.is_ok() {
+            println!("{:?}", response);
 
             let avatar_query = ImagesTable::new(connection).set_avatar(CreateAvatarQuery {
                 user_id: id,
                 image_data: CreateImageQuery {
-                    path,
+                    path: image_path,
                     filename: String::from(image.filename),
                 },
             });
@@ -769,8 +769,6 @@ pub mod router {
     // юзер перехоит по ссылке из почты, открывается страница с восстановлением пароля // password, confirm_password
     // меняем пароль в бд
 
-    use reqwest::header::HeaderValue;
-
     #[utoipa::path(
         get,
         path = "/get_avatarv2",
@@ -803,9 +801,10 @@ pub mod router {
 
         match resp {
             Ok(rs) => {
+                println!("{}", rs.status());
                 let txt = rs.text().await.unwrap();
 
-                println!("body = {txt:?}");
+                // println!("body = {txt:?}");
 
                 Ok((
                     StatusCode::OK,
