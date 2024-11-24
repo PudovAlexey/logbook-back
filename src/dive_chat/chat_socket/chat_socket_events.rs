@@ -1,15 +1,11 @@
-use crate::{
-    dive_chat::{
+use crate::dive_chat::{
         chat_socket::{
             event_emmiters::SEND_MESSAGE,
             model::{ChatSocketResponseSchema, ResponseStatus},
         },
         kafka_chat_handler::KafkaChatHandler,
-        model::{Message, UserWithAuthor},
-        test_state,
-    },
-    users::model::USER,
-};
+        model::UserWithAuthor,
+    };
 
 use socketioxide::extract::{Data, SocketRef, State};
 use std::{
@@ -22,24 +18,13 @@ use super::{
     model::MessageParams,
 };
 
-#[derive(serde::Serialize)]
-struct Messages {
-    messages: Vec<test_state::Message>,
-}
-
-#[derive(Debug, serde::Deserialize, Clone)]
-struct MessageIn {
-    room: String,
-    text: String,
-}
-
 #[derive(Clone)]
 pub struct ChatSocketState {
     pub kafka_chat_handler: KafkaChatHandler,
 }
 
 pub async fn on_connect(socket: SocketRef) {
-    socket.emit(
+    let _ = socket.emit(
         ON_CONNECT,
         String::from("socket server successfully connected"),
     );
@@ -66,7 +51,7 @@ pub async fn on_connect(socket: SocketRef) {
                                 match mess.author {
                                     Some(author) => {
                                         if author.id != room.user_uuid {
-                                            let responce = ChatSocketResponseSchema {
+                                            let _responce = ChatSocketResponseSchema {
                                                 status: ResponseStatus::Success,
                                                 data: event_data.to_string(),
                                             };
@@ -87,7 +72,7 @@ pub async fn on_connect(socket: SocketRef) {
                                 //     socket.emit(SEND_MESSAGE, responce).ok();
                                 // }
                             }
-                            Err(error) => {
+                            Err(_error) => {
                                 println!("failed to parse message")
                             }
                         }

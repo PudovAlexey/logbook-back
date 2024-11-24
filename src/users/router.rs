@@ -1,4 +1,3 @@
-use crate::common::env::ENV;
 pub mod router {
     extern crate image;
     use crate::common::env::ENV;
@@ -10,7 +9,7 @@ pub mod router {
     use crate::common::redis::{Redis, SetExpireItem};
 
     extern crate rand;
-    use lettre_email::mime::JSON;
+    
 
     use argon2::PasswordVerifier;
     use axum::extract::{Path, Query, State};
@@ -21,7 +20,7 @@ pub mod router {
     use serde::Deserialize;
 
     use crate::users::auth::auth;
-    use http::{request, StatusCode};
+    use http::StatusCode;
     use serde_json::{json, Value};
 
     use crate::common::mailer::Mailer;
@@ -771,7 +770,6 @@ pub mod router {
     // меняем пароль в бд
 
     use reqwest::header::HeaderValue;
-    use std::collections::HashMap;
 
     #[utoipa::path(
         get,

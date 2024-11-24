@@ -6,12 +6,10 @@ use kafka::consumer::{
 };
 use kafka::producer::{Producer, Record};
 use rdkafka::admin::{AdminClient, AdminOptions, NewTopic, TopicReplication};
-use rdkafka::client::Client;
 use rdkafka::config::FromClientConfig;
 use rdkafka::error::KafkaError;
 use rdkafka::ClientConfig;
 use serde_json::Value;
-use std::time::Duration;
 
 use super::model::UserWithAuthor;
 
@@ -46,7 +44,7 @@ impl KafkaChatHandler {
             .await;
 
         match result {
-            Ok(top) => {
+            Ok(_top) => {
                 let producer = Producer::from_hosts(hosts.clone()).create().unwrap();
 
                 let consumer = Consumer::from_hosts(hosts)

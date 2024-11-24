@@ -52,7 +52,7 @@ async fn handler(axum::extract::State(io): axum::extract::State<SocketIo>) {
 #[tokio::main]
 async fn main() {
     let hosts = vec!["localhost:9092".to_string()];
-    let mut kafka_chat_handler =
+    let kafka_chat_handler =
         KafkaChatHandler::new(hosts.clone(), String::from("dive_messages"))
             .await
             .unwrap();

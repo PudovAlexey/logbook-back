@@ -101,7 +101,7 @@ pub fn create_chat_mutation(
 
     let mut connection = connection;
 
-    let mut new_chat: i32 = diesel::insert_into(chat::table)
+    let new_chat: i32 = diesel::insert_into(chat::table)
         .values((
             chat::columns::title.eq(chat_title),
             chat::columns::description.eq(description),

@@ -124,7 +124,7 @@ pub async fn get_messages_by_id(
 )]
 
 pub async fn create_chat(
-    Extension(user): Extension<USER>,
+    Extension(_user): Extension<USER>,
     State(shared_state): State<Arc<SharedState>>,
     Json(body): Json<service::CreateChatParams>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
@@ -163,7 +163,6 @@ pub async fn create_message(
     Path(id): Path<i32>,
     Json(body): Json<MessageText>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    type SharedType = Arc<SharedState>;
 
     let connection = shared_state
         .connection_pool
