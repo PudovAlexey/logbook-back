@@ -8,50 +8,49 @@ use utoipa::ToSchema;
 #[diesel(table_name = crate::schema::image)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Image {
-  pub id: i32,
-  pub path: String,
-  pub filename: String,
-  pub created_at: NaiveDateTime,
-  pub updated_at: NaiveDateTime,
+    pub id: i32,
+    pub path: String,
+    pub filename: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 #[derive(Serialize, Insertable, Deserialize, Debug, Selectable, Queryable, ToSchema)]
 #[diesel(table_name = crate::schema::avatar)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Avatar {
-   pub id: i32,
-   pub image_id: i32,
-   pub user_id: uuid::Uuid,
+    pub id: i32,
+    pub image_id: i32,
+    pub user_id: uuid::Uuid,
 }
 
 #[derive(Serialize, Debug, Deserialize, ToSchema)]
 pub struct CreateImageQuery {
-  pub path: String,
-  pub filename: String,
+    pub path: String,
+    pub filename: String,
 }
 
 pub struct CreateImage {
-  pub path: String,
-  pub filename: String,
-  pub created_at: NaiveDateTime,
-  pub updated_at: NaiveDateTime,
+    pub path: String,
+    pub filename: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 impl From<CreateImageQuery> for CreateImage {
-  fn from(value: CreateImageQuery) -> Self {
-    CreateImage {
-      path: value.path,
-      filename: value.filename,
-      created_at: Utc::now().naive_utc(),
-      updated_at: Utc::now().naive_utc(),
+    fn from(value: CreateImageQuery) -> Self {
+        CreateImage {
+            path: value.path,
+            filename: value.filename,
+            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now().naive_utc(),
+        }
     }
-  }
 }
 
-
 pub struct CreateAvatarQuery {
- pub image_data: CreateImageQuery,
- pub user_id: uuid::Uuid
+    pub image_data: CreateImageQuery,
+    pub user_id: uuid::Uuid,
 }
 
 #[derive(Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone)]
@@ -68,17 +67,19 @@ pub struct AvatarInfo {
 #[diesel(table_name = crate::schema::log_image)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LogImage {
-  pub id: i32,
-  pub image_id: i32,
-  pub logbook_id: i32,
+    pub id: i32,
+    pub image_id: i32,
+    pub logbook_id: i32,
 }
 
-#[derive(Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+#[derive(
+    Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone, Deserialize, Serialize,
+)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(LogImage, foreign_key = image_id))]
 #[diesel(table_name = crate::schema::image)]
 pub struct LogImageInfo {
-  pub id: i32,
-  pub path: String,
-  pub filename: String,
+    pub id: i32,
+    pub path: String,
+    pub filename: String,
 }

@@ -124,13 +124,5 @@ diesel::joinable!(message -> chat (chat_id));
 diesel::joinable!(message -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    avatar,
-    chat,
-    chat_user,
-    dive_site,
-    image,
-    log_image,
-    loginfo,
-    message,
-    users,
+    avatar, chat, chat_user, dive_site, image, log_image, loginfo, message, users,
 );

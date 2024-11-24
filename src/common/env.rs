@@ -3,20 +3,20 @@ use std::net::Ipv4Addr;
 use crate::common::load_env_variable::load_env_variable;
 
 pub struct ENV {
-   pub app_protocol: String, 
-   pub app_host: Ipv4Addr,
-   pub database_url: String,
-   pub jwt_access_secret: String,
-   pub jwt_refresh_secret: String,
-   pub jwt_access_expired_in: i64,
-   pub jwt_refresh_expired_in: i64,
-   pub smtp_username: String,
-   pub smtp_password: String,
-   pub smtp_transport: String,
-   pub redis_port: String,
-   pub app_port: u16,
-   pub kafka_port: String,
-   pub ya_cloud_token: String,
+    pub app_protocol: String,
+    pub app_host: Ipv4Addr,
+    pub database_url: String,
+    pub jwt_access_secret: String,
+    pub jwt_refresh_secret: String,
+    pub jwt_access_expired_in: i64,
+    pub jwt_refresh_expired_in: i64,
+    pub smtp_username: String,
+    pub smtp_password: String,
+    pub smtp_transport: String,
+    pub redis_port: String,
+    pub app_port: u16,
+    pub kafka_port: String,
+    pub ya_cloud_token: String,
 }
 
 impl ENV {
@@ -35,8 +35,7 @@ impl ENV {
             redis_port: load_env_variable("REDIS_PORT"),
             app_protocol: load_env_variable("APP_PROTOCOL"),
             kafka_port: load_env_variable("KAFKA_PORT"),
-            ya_cloud_token: load_env_variable("YA_CLOUD_TOKEN")
+            ya_cloud_token: load_env_variable("YA_CLOUD_TOKEN"),
         }
     }
 }
-

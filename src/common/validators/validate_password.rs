@@ -1,5 +1,4 @@
 pub fn validate_password(password: String) -> Result<String, String> {
-
     let mut has_uppercase = false;
     let mut has_lowercase = false;
     let mut has_digit = false;
@@ -17,12 +16,11 @@ pub fn validate_password(password: String) -> Result<String, String> {
             has_whitespace = true;
         }
     }
-   let matching = has_chars >= 8 && has_uppercase && has_lowercase && has_digit && !has_whitespace;
+    let matching = has_chars >= 8 && has_uppercase && has_lowercase && has_digit && !has_whitespace;
 
-   if matching {
-    Ok(String::from("success"))
-   } else {
-    Err(String::from("error to verify password"))
-   }
-
+    if matching {
+        Ok(String::from("success"))
+    } else {
+        Err(String::from("error to verify password"))
+    }
 }

@@ -770,7 +770,7 @@ pub mod router {
     // юзер перехоит по ссылке из почты, открывается страница с восстановлением пароля // password, confirm_password
     // меняем пароль в бд
 
-    use reqwest::header::{HeaderValue};
+    use reqwest::header::HeaderValue;
     use std::collections::HashMap;
 
     #[utoipa::path(
@@ -781,46 +781,44 @@ pub mod router {
         // )
     )]
 
-    pub async fn get_user_avatar_v2(
-        // State(shared_state): State<ConnectionPool>,
+    pub async fn get_user_avatar_v2(// State(shared_state): State<ConnectionPool>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-
         let mut headers = HeaderMap::new();
         let header_string = format!("Api-Key {}", ENV::new().ya_cloud_token);
-        headers.insert("Authorization", HeaderValue::from_str(&header_string).unwrap());
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_str(&header_string).unwrap(),
+        );
 
         // let resp = reqwest::get("https://storage.api.cloud.yandex.net/storage/v1/buckets/useravatars123")
         // .await;
 
         let resp = reqwest::Client::new()
-        // .get("https://storage.api.cloud.yandex.net/storage/v1/buckets/useravatars123")
-        .get("https://storage.yandexcloud.net/useravatars123/1.jpg")
-        .headers(headers)
-        .send()
-        .await;
-        
+            // .get("https://storage.api.cloud.yandex.net/storage/v1/buckets/useravatars123")
+            .get("https://storage.yandexcloud.net/useravatars123/1.jpg")
+            .headers(headers)
+            .send()
+            .await;
+
         // let resp = reqwest::get("https://httpbin.org/ip")
         // .await;
 
-    match resp {
-        Ok(rs) => {
+        match resp {
+            Ok(rs) => {
+                let txt = rs.text().await.unwrap();
 
-            let txt = rs.text().await.unwrap();
+                println!("body = {txt:?}");
 
-            println!("body = {txt:?}");
-
-            Ok((
-                StatusCode::OK,
-                Json(json!({"detail": "werify password is incompatible"})),
-            ))
-        }, 
-        Err(_) => {
-            Err((
+                Ok((
+                    StatusCode::OK,
+                    Json(json!({"detail": "werify password is incompatible"})),
+                ))
+            }
+            Err(_) => Err((
                 StatusCode::UNPROCESSABLE_ENTITY,
                 Json(json!({"detail": "werify password is incompatible"})),
-            ))
+            )),
         }
-    }
     }
 
     #[utoipa::path(

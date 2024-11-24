@@ -1,14 +1,26 @@
-use crate::{dive_chat::{chat_socket::{event_emmiters::SEND_MESSAGE, model::{ChatSocketResponseSchema, ResponseStatus}}, kafka_chat_handler::KafkaChatHandler, model::{Message, UserWithAuthor}, test_state}, users::model::USER};
-
-use socketioxide::{
-    extract::{Data, SocketRef, State},
+use crate::{
+    dive_chat::{
+        chat_socket::{
+            event_emmiters::SEND_MESSAGE,
+            model::{ChatSocketResponseSchema, ResponseStatus},
+        },
+        kafka_chat_handler::KafkaChatHandler,
+        model::{Message, UserWithAuthor},
+        test_state,
+    },
+    users::model::USER,
 };
+
+use socketioxide::extract::{Data, SocketRef, State};
 use std::{
     sync::{Arc, Mutex},
     thread,
 };
 
-use super::{event_emmiters::{JOIN, ON_CONNECT}, model::MessageParams};
+use super::{
+    event_emmiters::{JOIN, ON_CONNECT},
+    model::MessageParams,
+};
 
 #[derive(serde::Serialize)]
 struct Messages {
@@ -46,25 +58,22 @@ pub async fn on_connect(socket: SocketRef) {
                         let event_data = KafkaChatHandler::get_new_messages_by_chat_id(m);
                         let socket = socket.lock().unwrap();
                         let message: Result<UserWithAuthor, serde_json::Error> =
-                        serde_json::from_value(event_data.clone());
+                            serde_json::from_value(event_data.clone());
 
-    
                         println!("{:?}", message);
                         match message {
                             Ok(mess) => {
                                 match mess.author {
                                     Some(author) => {
-                                        
                                         if author.id != room.user_uuid {
                                             let responce = ChatSocketResponseSchema {
                                                 status: ResponseStatus::Success,
                                                 data: event_data.to_string(),
                                             };
-                                            
-                                        
+
                                             socket.emit(SEND_MESSAGE, event_data.to_string()).ok();
                                         }
-                                    },
+                                    }
                                     None => {
                                         println!("error")
                                     }

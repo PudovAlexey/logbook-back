@@ -1,17 +1,15 @@
 use crate::common::{
     env::ENV,
-    error_boundary::
-        error_boundary::{self, BoundaryHandlers}
-    ,
+    error_boundary::error_boundary::{self, BoundaryHandlers},
 };
 use crate::users::model::TokenClaims;
 use crate::users::service::service::UserTable;
 use axum::{
+    extract::Request,
     extract::State,
     http::{header, StatusCode},
     middleware::Next,
     response::Response,
-    extract::Request,
     Json,
 };
 use axum_extra::extract::cookie::CookieJar;
@@ -37,17 +35,16 @@ pub async fn auth(
     let token = cookie_jar
         .get("access")
         .map(|cookie| {
-           let mut str = cookie.value().to_string();
-           str.pop();
+            let mut str = cookie.value().to_string();
+            str.pop();
 
-           str
+            str
         })
         .or_else(|| {
             req.headers()
                 .get(header::AUTHORIZATION)
                 .and_then(|auth_header| auth_header.to_str().ok())
                 .and_then(|auth_value| {
-
                     if auth_value.starts_with("Bearer ") {
                         Some(auth_value[7..].to_owned())
                     } else {
@@ -103,12 +100,10 @@ pub async fn auth(
 
                         match user.is_ok() {
                             true => {
-                            req.extensions_mut().insert(user.unwrap());
+                                req.extensions_mut().insert(user.unwrap());
 
-
-                            let response = next.run(req).await;
-                            Ok(response)
-
+                                let response = next.run(req).await;
+                                Ok(response)
                             }
                             false => {
                                 let error_boundary = error_boundary

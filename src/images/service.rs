@@ -2,10 +2,11 @@ pub mod service {
     extern crate image;
 
     use crate::images::model::{AvatarInfo, CreateAvatarQuery, CreateImage, LogImageInfo};
-    
 
     use diesel::{
-        prelude::*, r2d2::{ConnectionManager, PooledConnection}, sql_query, ExpressionMethods, PgConnection, RunQueryDsl
+        prelude::*,
+        r2d2::{ConnectionManager, PooledConnection},
+        sql_query, ExpressionMethods, PgConnection, RunQueryDsl,
     };
 
     use diesel::sql_types::Text;
@@ -18,9 +19,9 @@ pub mod service {
 
     #[derive(QueryableByName)]
     struct ImagePath {
-    #[sql_type = "Text"]
-    path: String,
-}
+        #[sql_type = "Text"]
+        path: String,
+    }
 
     impl ImagesTable {
         pub fn new(connection: PooledPg) -> ImagesTable {
@@ -79,27 +80,32 @@ pub mod service {
             }
         }
 
-
-        pub fn get_user_avatar_data(&mut self, user_id: uuid::Uuid) -> Result<String, diesel::result::Error> {
-            let query: String = format!("SELECT image.path FROM users 
+        pub fn get_user_avatar_data(
+            &mut self,
+            user_id: uuid::Uuid,
+        ) -> Result<String, diesel::result::Error> {
+            let query: String = format!(
+                "SELECT image.path FROM users 
              LEFT JOIN avatar ON users.avatar_id = avatar.id 
-             LEFT JOIN image ON avatar.image_id = image.id WHERE users.id = '{}'", user_id);
-    
+             LEFT JOIN image ON avatar.image_id = image.id WHERE users.id = '{}'",
+                user_id
+            );
+
             let results: Vec<ImagePath> = sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
                 .load(&mut self.connection)
                 .expect("Error loading image paths");
-    
-          
+
             match results.get(0) {
                 Some(res) => Ok(res.path.clone()),
                 None => Err(diesel::result::Error::NotFound),
             }
         }
-        
-    
 
-        pub fn get_avatar_data(&mut self, avatar_id: i32)-> Result<AvatarInfo, diesel::result::Error> {
+        pub fn get_avatar_data(
+            &mut self,
+            avatar_id: i32,
+        ) -> Result<AvatarInfo, diesel::result::Error> {
             use crate::schema::avatar;
             use crate::schema::image;
 
@@ -112,9 +118,12 @@ pub mod service {
             avatar_data
         }
 
-        pub fn get_log_image_data(&mut self, logbook_id: i32)-> Result<LogImageInfo, diesel::result::Error> {
-            use crate::schema::log_image;
+        pub fn get_log_image_data(
+            &mut self,
+            logbook_id: i32,
+        ) -> Result<LogImageInfo, diesel::result::Error> {
             use crate::schema::image;
+            use crate::schema::log_image;
 
             let log_image_data: Result<LogImageInfo, diesel::result::Error> = log_image::table
                 .inner_join(image::table.on(image::columns::id.eq(log_image::columns::image_id)))

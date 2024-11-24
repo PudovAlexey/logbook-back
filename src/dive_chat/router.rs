@@ -6,13 +6,12 @@ use crate::users::model::USER;
 use crate::dive_chat::service;
 use crate::SharedState;
 use axum::Json;
-use utoipa::ToSchema;
 use axum::{response::IntoResponse, Router};
+use utoipa::ToSchema;
 
-
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
-use serde::{Serialize, Deserialize};
 
 use axum::extract::{Extension, Path, State};
 use axum::middleware;
@@ -27,14 +26,29 @@ pub fn chat_sites_routes(shared_state: Arc<SharedState>) -> Router {
     Router::new()
         .route(
             &format!("{}chats", CHAT_ENDPOINTS),
-            axum::routing::get(get_chat_list).route_layer(middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth))
+            axum::routing::get(get_chat_list).route_layer(middleware::from_fn_with_state(
+                shared_state.connection_pool.clone(),
+                auth,
+            )),
         )
-        .route(&format!("{}messages/:id", CHAT_ENDPOINTS), axum::routing::get(get_messages_by_id))
         .route(
-            &format!("{}create_chat", CHAT_ENDPOINTS), 
-            axum::routing::post(create_chat).route_layer(middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth))
+            &format!("{}messages/:id", CHAT_ENDPOINTS),
+            axum::routing::get(get_messages_by_id),
         )
-        .route(&format!("{}create_message/:id", CHAT_ENDPOINTS), axum::routing::post(create_message).route_layer(middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth)))
+        .route(
+            &format!("{}create_chat", CHAT_ENDPOINTS),
+            axum::routing::post(create_chat).route_layer(middleware::from_fn_with_state(
+                shared_state.connection_pool.clone(),
+                auth,
+            )),
+        )
+        .route(
+            &format!("{}create_message/:id", CHAT_ENDPOINTS),
+            axum::routing::post(create_message).route_layer(middleware::from_fn_with_state(
+                shared_state.connection_pool.clone(),
+                auth,
+            )),
+        )
         .with_state(shared_state)
 }
 
@@ -47,26 +61,24 @@ pub fn chat_sites_routes(shared_state: Arc<SharedState>) -> Router {
 )]
 
 pub async fn get_chat_list(
-    State(shared_state):State<Arc<SharedState>>,
+    State(shared_state): State<Arc<SharedState>>,
     Extension(user): Extension<USER>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
+    let connection = shared_state
+        .connection_pool
+        .pool
+        .get()
+        .expect("Failed connection to POOL");
 
-    match service::get_chat_list_by_user_id(connection, service::ChatListByUserIdParams {
-        id: user.id,
-    }) {
-        Ok(chats) => {
-            Ok((
-                StatusCode::OK, 
-                Json(json!({"data": chats})),
-            ))
-        },
-        Err(error) => {
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR, 
-                Json(json!({"error": error.to_string()})),
-            ))
-        }
+    match service::get_chat_list_by_user_id(
+        connection,
+        service::ChatListByUserIdParams { id: user.id },
+    ) {
+        Ok(chats) => Ok((StatusCode::OK, Json(json!({"data": chats})))),
+        Err(error) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": error.to_string()})),
+        )),
     }
 }
 
@@ -86,26 +98,20 @@ pub async fn get_messages_by_id(
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     // app_state.waiting_queue.read().await
-    let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
+    let connection = shared_state
+        .connection_pool
+        .pool
+        .get()
+        .expect("Failed connection to POOL");
     // let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
-    match service::get_message_list_by_id(connection, service::GetMessageListByIdParams {
-        id
-    }) {
-        Ok(messages) => {
-            Ok((
-                StatusCode::OK, 
-                Json(json!({"data": messages})),
-            ))
-        },
-        Err(error) => {
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR, 
-                Json(json!({"error": error.to_string()})),
-            ))
-        }
+    match service::get_message_list_by_id(connection, service::GetMessageListByIdParams { id }) {
+        Ok(messages) => Ok((StatusCode::OK, Json(json!({"data": messages})))),
+        Err(error) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": error.to_string()})),
+        )),
     }
-    
 }
 
 #[utoipa::path(
@@ -122,27 +128,24 @@ pub async fn create_chat(
     State(shared_state): State<Arc<SharedState>>,
     Json(body): Json<service::CreateChatParams>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
-    
+    let connection = shared_state
+        .connection_pool
+        .pool
+        .get()
+        .expect("Failed connection to POOL");
+
     match service::create_chat_mutation(connection, body) {
-        Ok(messages) => {
-            Ok((
-                StatusCode::OK, 
-                Json(json!({"data": messages})),
-            ))
-        },
-        Err(error) => {
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR, 
-                Json(json!({"error": error.to_string()})),
-            ))
-        }
+        Ok(messages) => Ok((StatusCode::OK, Json(json!({"data": messages})))),
+        Err(error) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": error.to_string()})),
+        )),
     }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct MessageText {
-  pub  text: String
+    pub text: String,
 }
 
 #[utoipa::path(
@@ -154,7 +157,6 @@ pub struct MessageText {
     )
 )]
 
-
 pub async fn create_message(
     Extension(user): Extension<USER>,
     State(shared_state): State<Arc<SharedState>>,
@@ -163,27 +165,27 @@ pub async fn create_message(
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     type SharedType = Arc<SharedState>;
 
-    let connection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
+    let connection = shared_state
+        .connection_pool
+        .pool
+        .get()
+        .expect("Failed connection to POOL");
 
     let chat_producer = shared_state.kafka_chat_handler.clone();
 
-
-    match service::create_message_mutation(connection, service::CreateMessageParams {
-        chat_id: id,
-        text: body.text,
-        user,
-    }, chat_producer) {
-        Ok(message_id) => {
-            Ok((
-                StatusCode::OK, 
-                Json(json!({"data": message_id})),
-            ))
+    match service::create_message_mutation(
+        connection,
+        service::CreateMessageParams {
+            chat_id: id,
+            text: body.text,
+            user,
         },
-        Err(error) => {
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR, 
-                Json(json!({"error": error.to_string()})),
-            ))
-        }
+        chat_producer,
+    ) {
+        Ok(message_id) => Ok((StatusCode::OK, Json(json!({"data": message_id})))),
+        Err(error) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": error.to_string()})),
+        )),
     }
 }

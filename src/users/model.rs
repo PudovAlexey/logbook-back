@@ -1,12 +1,10 @@
+use crate::common::validators::{
+    validate_email::validate_email, validate_password::validate_password,
+};
 use chrono::{NaiveDateTime, Utc};
 use diesel::{deserialize::Queryable, prelude::Insertable, Selectable};
-use crate::common::validators::{
-    validate_email::validate_email,
-    validate_password::validate_password,
-};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-
 
 pub enum UserRole {
     USER,
@@ -17,7 +15,7 @@ impl UserRole {
     fn new(role: UserRole) -> String {
         match role {
             UserRole::ADMIN => String::from("ADMIN"),
-            UserRole::USER => String::from("USER")
+            UserRole::USER => String::from("USER"),
         }
     }
 }
@@ -26,23 +24,23 @@ impl UserRole {
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct USER {
- pub id: uuid::Uuid,
- pub email: String,
- pub name: String,
- pub surname: Option<String>,
- pub patronymic: Option<String>,
- pub role: String,
- pub created_at: NaiveDateTime,
- pub updated_at: NaiveDateTime,
- pub date_of_birth: NaiveDateTime,
- pub password: String,
- pub is_verified: bool,
- pub avatar_id: Option<i32>,
+    pub id: uuid::Uuid,
+    pub email: String,
+    pub name: String,
+    pub surname: Option<String>,
+    pub patronymic: Option<String>,
+    pub role: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub date_of_birth: NaiveDateTime,
+    pub password: String,
+    pub is_verified: bool,
+    pub avatar_id: Option<i32>,
 }
 
 pub struct ComparePassword<T> {
-   pub user: T,
-   pub confirm_password: String
+    pub user: T,
+    pub confirm_password: String,
 }
 
 #[derive(ToSchema, Debug)]
@@ -67,12 +65,11 @@ pub struct CreateUserHandlerQUERY {
     pub patronymic: Option<String>,
     pub date_of_birth: NaiveDateTime,
     pub password: String,
-    pub confirm_password: String
+    pub confirm_password: String,
 }
 
 impl CreateUserHandlerQUERY {
     pub fn compare_password(self) -> bool {
-        
         self.password == self.confirm_password
     }
 }
@@ -97,8 +94,6 @@ impl From<CreateUserHandlerQUERY> for CreateUserHandler {
 impl CreateUserHandlerQUERY {
     pub fn password_verify(self) -> Result<String, String> {
         validate_password(self.password)
-
-
     }
 
     pub fn email_verify(self) -> Result<String, String> {
@@ -110,27 +105,24 @@ impl CreateUserHandlerQUERY {
 pub struct TokenClaims {
     pub sub: String,
     pub iat: usize,
-    pub exp: usize
+    pub exp: usize,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct LoginUser {
-   pub email: String,
-   pub password: String
+    pub email: String,
+    pub password: String,
 }
 
 impl LoginUser {
     pub fn password_verify(self) -> Result<String, String> {
         validate_password(self.password)
-
-
     }
 
     pub fn email_verify(self) -> Result<String, String> {
         validate_email(self.email)
     }
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct UserRemoveSensitiveInfo {
@@ -148,9 +140,7 @@ pub struct UserRemoveSensitiveInfo {
 
 impl From<USER> for UserRemoveSensitiveInfo {
     fn from(value: USER) -> Self {
-        let USER { id, email, name, surname, patronymic, role, created_at, updated_at, date_of_birth, ..} = value;
-
-       return UserRemoveSensitiveInfo {
+        let USER {
             id,
             email,
             name,
@@ -160,8 +150,21 @@ impl From<USER> for UserRemoveSensitiveInfo {
             created_at,
             updated_at,
             date_of_birth,
-            avatar_url: None
-        }
+            ..
+        } = value;
+
+        return UserRemoveSensitiveInfo {
+            id,
+            email,
+            name,
+            surname,
+            patronymic,
+            role,
+            created_at,
+            updated_at,
+            date_of_birth,
+            avatar_url: None,
+        };
     }
 }
 
@@ -198,17 +201,16 @@ impl From<UpdateUserDataQuery> for UpdateUserData {
     }
 }
 
-
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct ForgotPassword {
-  pub email: String
+    pub email: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone)]
 pub struct ResetPassword {
-  pub secret_code: i32,  
-  pub password: String,
-  pub confirm_password: String,
+    pub secret_code: i32,
+    pub password: String,
+    pub confirm_password: String,
 }
 
 impl ResetPassword {

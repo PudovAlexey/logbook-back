@@ -3,10 +3,8 @@ use axum::{response::IntoResponse, Router};
 use crate::common::db::ConnectionPool;
 
 use axum::{
+    extract::{Query, State},
     Json,
-    extract::{
-        State, Query,
-    }
 };
 
 use serde_json::{json, Value};
@@ -19,8 +17,11 @@ const ENDPOINT: &str = "/dive_sites/";
 
 pub fn dive_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
     Router::new()
-    .route(&format!("{}list", ENDPOINT), axum::routing::get(get_dive_site_list))
-    .with_state(shared_connection_pool)
+        .route(
+            &format!("{}list", ENDPOINT),
+            axum::routing::get(get_dive_site_list),
+        )
+        .with_state(shared_connection_pool)
 }
 
 #[utoipa::path(
@@ -41,15 +42,14 @@ pub async fn get_dive_site_list(
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
     let connection = shared_state.pool.get().expect("Failed connection to POOL");
 
-   let res = service::get_dive_site_list(connection, params);
+    let res = service::get_dive_site_list(connection, params);
 
-//    Ok(StatusCode::OK, Json(json!({"data": res.unwrap()})))
-match res {
-    Ok(data) => {
-        Ok((StatusCode::OK, Json(json!({"data": data}))))
-    },
-    Err(error) => {
-        Err((StatusCode::BAD_REQUEST, Json(json!({"err": error.to_string()}))))
+    //    Ok(StatusCode::OK, Json(json!({"data": res.unwrap()})))
+    match res {
+        Ok(data) => Ok((StatusCode::OK, Json(json!({"data": data})))),
+        Err(error) => Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({"err": error.to_string()})),
+        )),
     }
-}
 }

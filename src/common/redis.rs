@@ -43,7 +43,6 @@ impl Redis {
     }
 
     pub fn set_expire_item<V: ToRedisArgs>(&mut self, v: SetExpireItem<V>) -> RedisClientStatus {
-
         let res: Result<(), RedisError> = self.connection.set(&v.key, v.value);
 
         let req: Result<(), RedisError> = self.connection.expire(v.key, v.expires);

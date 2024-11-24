@@ -6,77 +6,78 @@ pub mod error_boundary {
     use serde::Serialize;
     use serde_json::{json, Value};
 
-   pub trait BoundaryHandlers<T, R> {
-       fn insert(self, params: T) -> Self;
-       fn send(self, res: R) -> Result<impl IntoResponse, (StatusCode, Json<Value>)>;
-       fn send_error(self) -> (StatusCode, Json<Value>);
+    pub trait BoundaryHandlers<T, R> {
+        fn insert(self, params: T) -> Self;
+        fn send(self, res: R) -> Result<impl IntoResponse, (StatusCode, Json<Value>)>;
+        fn send_error(self) -> (StatusCode, Json<Value>);
     }
 
     #[derive(Clone, Serialize)]
-   pub struct FieldError {
-      pub  message: String,
-      pub  description: String,
+    pub struct FieldError {
+        pub message: String,
+        pub description: String,
     }
 
-   pub struct InsertFieldError {
-      pub  key: String,
-      pub  value: FieldError,
+    pub struct InsertFieldError {
+        pub key: String,
+        pub value: FieldError,
     }
 
-   pub enum InsetWhere {
+    pub enum InsetWhere {
         Update(usize),
         Push,
     }
 
     pub struct InsertArrayFieldError {
-       pub index: InsetWhere,
-       pub value: InsertFieldError
+        pub index: InsetWhere,
+        pub value: InsertFieldError,
     }
 
     #[derive(Clone, Serialize)]
     pub struct ObjectError {
-        value: HashMap<String, FieldError>
+        value: HashMap<String, FieldError>,
     }
 
     impl ObjectError {
         pub fn new() -> Self {
             ObjectError {
-                value: HashMap::new()
+                value: HashMap::new(),
             }
         }
     }
 
-    impl BoundaryHandlers<InsertFieldError, Json<Value>> for ObjectError  {
+    impl BoundaryHandlers<InsertFieldError, Json<Value>> for ObjectError {
         fn insert(mut self, params: InsertFieldError) -> Self {
+            self.value.insert(params.key, params.value);
 
-           self.value.insert(params.key, params.value);
-
-            ObjectError {
-                value: self.value
-            }
+            ObjectError { value: self.value }
         }
 
         fn send(self, res: Json<Value>) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
             if self.value.len() > 0 {
-                Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value}))))
+                Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    Json(json!({"detail": self.value})),
+                ))
             } else {
                 Ok((StatusCode::OK, Json(json!({"data": *res}))))
             }
         }
 
         fn send_error(self) -> (StatusCode, Json<Value>) {
-            (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({"detail": self.value})),
+            )
         }
     }
-     pub struct FieldArrayError {
-      pub  value: Vec<ObjectError>
+    pub struct FieldArrayError {
+        pub value: Vec<ObjectError>,
     }
 
     impl FieldArrayError {
-      pub  fn new() -> Self {
-            FieldArrayError {
-                value: Vec::new()
-            }
+        pub fn new() -> Self {
+            FieldArrayError { value: Vec::new() }
         }
     }
 
@@ -88,7 +89,6 @@ pub mod error_boundary {
             // }
             match params.index {
                 InsetWhere::Push => {
-                    
                     let mut new_error = ObjectError::new();
 
                     new_error = new_error.insert(InsertFieldError {
@@ -108,61 +108,66 @@ pub mod error_boundary {
                             value: params.value.value,
                         });
                     } else {
-                        
                     }
-
-                    
                 }
             }
 
-            FieldArrayError {
-                value: self.value
-            }
+            FieldArrayError { value: self.value }
         }
 
         fn send(self, res: Json<Value>) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
             if self.value.len() > 0 {
-                Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value}))))
+                Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    Json(json!({"detail": self.value})),
+                ))
             } else {
                 Ok((StatusCode::OK, Json(json!({"data": *res}))))
             }
         }
 
         fn send_error(self) -> (StatusCode, Json<Value>) {
-            (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({"detail": self.value})),
+            )
         }
     }
 
     pub struct SimpleError {
-        value: String
+        value: String,
     }
 
     impl SimpleError {
-       pub fn new() -> Self {
+        pub fn new() -> Self {
             SimpleError {
-                value: String::new()
+                value: String::new(),
             }
         }
     }
 
     impl BoundaryHandlers<String, Json<Value>> for SimpleError {
-       fn insert(self, params: String) -> Self {
+        fn insert(self, params: String) -> Self {
             let new_value = format!("{}{}", self.value, params);
-            SimpleError {
-                value: new_value
-            }
+            SimpleError { value: new_value }
         }
 
         fn send(self, res: Json<Value>) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        if self.value.len() > 0 {
-            Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value}))))
-        } else {
-            Ok((StatusCode::OK, Json(json!({"data": *res}))))
+            if self.value.len() > 0 {
+                Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    Json(json!({"detail": self.value})),
+                ))
+            } else {
+                Ok((StatusCode::OK, Json(json!({"data": *res}))))
+            }
         }
-    }
 
-    fn send_error(self) -> (StatusCode, Json<Value>) {
-        (StatusCode::UNPROCESSABLE_ENTITY, Json(json!({"detail": self.value})))
-    }
+        fn send_error(self) -> (StatusCode, Json<Value>) {
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({"detail": self.value})),
+            )
+        }
     }
 }

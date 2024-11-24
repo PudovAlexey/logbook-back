@@ -1,7 +1,7 @@
-use diesel::prelude::*;
 use chrono::NaiveDateTime;
-use utoipa::ToSchema;
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::users::model::USER;
 
@@ -10,21 +10,23 @@ use crate::users::model::USER;
 #[diesel(belongs_to(Chat, foreign_key = chat_id))]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Message {
-   pub id: i32,
-   pub text: String,
-   pub chat_id: i32,
-   pub created_at: Option<NaiveDateTime>,
-   pub updated_at: Option<NaiveDateTime>,
-   pub user_id: Option<uuid::Uuid>,
+    pub id: i32,
+    pub text: String,
+    pub chat_id: i32,
+    pub created_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
+    pub user_id: Option<uuid::Uuid>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct UserWithAuthor {
-   pub message: Message,
-   pub author: Option<USER>
+    pub message: Message,
+    pub author: Option<USER>,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Queryable, Identifiable, Selectable, Debug, PartialEq, Serialize, Deserialize, ToSchema,
+)]
 #[diesel(table_name = crate::schema::chat)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Chat {
@@ -43,5 +45,5 @@ pub struct Chat {
 pub struct ChatUser {
     pub id: i32,
     pub chat_id: i32,
-    pub user_id: uuid::Uuid
+    pub user_id: uuid::Uuid,
 }

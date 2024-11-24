@@ -1,43 +1,42 @@
-use axum::{extract::Multipart as AxumMultipart};
+use axum::extract::Multipart as AxumMultipart;
 use serde::Deserialize;
 
 enum MultipartField {
     Image,
     Crop,
-    None
+    None,
 }
 
 impl MultipartField {
-   fn new(value: String) -> Self {
-    if value == "image" {
-        MultipartField::Image
-    } else if value == "crop" {
-        MultipartField::Crop
-    } else {
-        MultipartField::None
+    fn new(value: String) -> Self {
+        if value == "image" {
+            MultipartField::Image
+        } else if value == "crop" {
+            MultipartField::Crop
+        } else {
+            MultipartField::None
+        }
     }
-   }
 }
 
 #[derive(Debug, Deserialize)]
 
 pub struct CropParams {
-   pub x: u32,
-   pub y: u32,
-   pub width: u32,
-   pub height: u32
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
 }
-
 
 #[derive(Debug)]
 pub struct ImageMultipart {
-   pub image_vec: Vec<u8>,
-   pub crop: CropParams,
-   pub filename: String,
+    pub image_vec: Vec<u8>,
+    pub crop: CropParams,
+    pub filename: String,
 }
 
 impl ImageMultipart {
-  pub async fn new(mut value: AxumMultipart) -> Self {
+    pub async fn new(mut value: AxumMultipart) -> Self {
         let mut image: Vec<u8> = Vec::new();
         let mut filename = String::new();
         let mut crop = CropParams {
@@ -57,18 +56,16 @@ impl ImageMultipart {
                     let value = field.bytes().await.unwrap();
                     let value_str = std::str::from_utf8(&value).unwrap();
                     crop = serde_json::from_str(value_str).unwrap();
-
-                },
+                }
                 MultipartField::Image => {
                     filename = String::from(field.file_name().unwrap());
-                    
+
                     while let Some(chunk) = field.chunk().await.unwrap() {
                         image.extend_from_slice(chunk.as_ref());
                     }
-                },
+                }
                 _ => {}
             }
-            
         }
 
         ImageMultipart {

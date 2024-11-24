@@ -4,8 +4,9 @@ use utoipa::ToSchema;
 
 use bigdecimal;
 
-
-#[derive(Serialize, Deserialize, Debug, Selectable, Queryable, ToSchema, Identifiable, PartialEq)]
+#[derive(
+    Serialize, Deserialize, Debug, Selectable, Queryable, ToSchema, Identifiable, PartialEq,
+)]
 #[diesel(table_name = crate::schema::dive_site)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DiveSite {
@@ -26,8 +27,8 @@ pub struct DiveSite {
 #[diesel(table_name = crate::schema::dive_site)]
 
 pub struct RequiredSelectListItems {
- pub id: i32,
- pub title: String,
- pub description: Option<String>,
- pub image_id: i32,
+    pub id: i32,
+    pub title: String,
+    pub description: Option<String>,
+    pub image_id: i32,
 }
