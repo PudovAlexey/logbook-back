@@ -1,7 +1,8 @@
 pub mod router {
+    use crate::SharedState;
     use reqwest::header::HeaderValue;
+    use std::sync::Arc;
     extern crate image;
-    use crate::common::env::ENV;
     use crate::common::error_boundary::error_boundary::{
         self, BoundaryHandlers, FieldError, InsertFieldError,
     };
@@ -30,7 +31,7 @@ pub mod router {
     use crate::users::service::service::UserTable;
 
     use crate::{
-        common::db::ConnectionPool, users::model::CreateUserHandlerQUERY, users::model::LoginUser,
+    users::model::CreateUserHandlerQUERY, users::model::LoginUser,
     };
 
     use crate::images::service::service::ImagesTable;
@@ -41,10 +42,6 @@ pub mod router {
         ResetPassword, ResetUserPassword, UpdateUserDataQuery, UserRemoveSensitiveInfo,
         VerifyUserCode,
     };
-    use std::env;
-    use std::fs::DirBuilder;
-    use std::fs::File;
-    use std::io::prelude::*;
 
     #[derive(Deserialize)]
     struct RefreshTokenParams {
@@ -52,8 +49,10 @@ pub mod router {
         refresh_token: String,
     }
 
-    pub fn user_routes(shared_connection_pool: ConnectionPool) -> Router {
-        let auth_middleware = middleware::from_fn_with_state(shared_connection_pool.clone(), auth);
+    pub fn user_routes(shared_state: Arc<SharedState>) -> Router {
+        let auth_middleware =
+            middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth);
+
         Router::new()
             .route(
                 "/refresh-tokens",
@@ -79,7 +78,6 @@ pub mod router {
                 axum::routing::post(reset_password_handler),
             )
             // .route("/set_avatar/:id", axum::routing::post(set_user_avatar).route_layer(auth_middleware.clone()))
-            .route("/get_avatarv2", axum::routing::get(get_user_avatar_v2))
             .route("/set_avatar/:id", axum::routing::post(set_user_avatar))
             .route(
                 "/get_avatar/:id",
@@ -89,7 +87,7 @@ pub mod router {
                 "/remove_account/:id",
                 axum::routing::get(remove_accaunt_handler).route_layer(auth_middleware.clone()),
             )
-            .with_state(shared_connection_pool)
+            .with_state(shared_state)
     }
 
     #[utoipa::path(
@@ -99,7 +97,7 @@ pub mod router {
     )]
 
     pub async fn create_user_handler(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Json(body): Json<CreateUserHandlerQUERY>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
         let verify_email = body.clone().email_verify();
@@ -127,7 +125,11 @@ pub mod router {
             ));
         }
 
-        let conntection = shared_state.pool.get().expect("Failed connection to POOL");
+        let conntection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         let email = body.email.clone();
 
@@ -184,11 +186,15 @@ pub mod router {
     )]
 
     pub async fn verify_user_handler(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Path(user_id): Path<String>,
         Json(body): Json<VerifyUserCode>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
         let claims_user_id = Redis::new().get_item(format!("verify={}", user_id));
 
         if claims_user_id.is_ok() {
@@ -253,10 +259,14 @@ pub mod router {
         request_body = LoginUser,
     )]
     pub async fn login_user_handler(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Json(body): Json<LoginUser>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
         let mut error_boundary = error_boundary::ObjectError::new();
 
         let validators = [body.clone().password_verify(), body.clone().email_verify()];
@@ -320,7 +330,11 @@ pub mod router {
 
         if user.avatar_id.is_some() {
             let id = user.avatar_id.unwrap();
-            let image_connection = shared_state.pool.get().expect("Failed connection to POOL");
+            let image_connection = shared_state
+                .connection_pool
+                .pool
+                .get()
+                .expect("Failed connection to POOL");
 
             let a = ImagesTable::new(image_connection).get_avatar_data(id);
 
@@ -370,13 +384,17 @@ pub mod router {
     )]
 
     async fn health_checker_handler(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Query(params): Query<RefreshTokenParams>,
         _headers: HeaderMap,
     ) -> impl IntoResponse {
         let mut res: Json<Value> = Json(json!({"data": "success"}));
         let mut simple_error = error_boundary::SimpleError::new();
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         let check_user = UserTable::new(connection).get_user_by_id(params.id);
 
@@ -408,19 +426,26 @@ pub mod router {
 
     pub async fn set_user_avatar(
         Path(id): Path<uuid::Uuid>,
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         multipart: axum::extract::Multipart,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
         let mut headers = HeaderMap::new();
-        let header_string = format!("Api-Key {}", ENV::new().ya_cloud_token);
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&header_string).unwrap(),
-        );
-        headers
-        .insert("Content-Type", HeaderValue::from_str("image/jpeg").unwrap());
+        let header_string = format!("Api-Key {}", shared_state.env.ya_cloud_token);
+
+        let authorization_header = HeaderValue::from_str(&header_string).map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": err.to_string()})),
+            )
+        })?;
+
+        headers.insert("Authorization", authorization_header);
 
         let image = ImageMultipart::new(multipart).await;
 
@@ -449,7 +474,11 @@ pub mod router {
 
             return match avatar_query {
                 Ok(avatar_id) => {
-                    let connectio2 = shared_state.pool.get().expect("Failed connection to POOL");
+                    let connectio2 = shared_state
+                        .connection_pool
+                        .pool
+                        .get()
+                        .expect("Failed connection to POOL");
                     let update_user = UserTable::new(connectio2).update_user_handler(
                         id,
                         UpdateUserDataQuery {
@@ -494,15 +523,19 @@ pub mod router {
 
     pub async fn get_user_avatar(
         Path(id): Path<uuid::Uuid>,
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match ImagesTable::new(connection).get_user_avatar_data(id) {
             Ok(data) => Ok((
                 StatusCode::OK,
                 Json(
-                    json!({"data": format!("{}{}:{}/{}", ENV::new().app_protocol, ENV::new().app_host, ENV::new().app_port, data) }),
+                    json!({"data": format!("{}{}:{}/{}", shared_state.env.app_protocol, shared_state.env.app_host, shared_state.env.app_port, data) }),
                 ),
             )),
             Err(error) => Err((
@@ -526,9 +559,13 @@ pub mod router {
 
     pub async fn request_verification_code(
         Path(email): Path<String>,
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
         let mut error_boundary = error_boundary::SimpleError::new();
 
         let can_try_again = Redis::new().get_item(String::from("verification_handler_expire"));
@@ -605,10 +642,14 @@ pub mod router {
 
     pub async fn reset_password_handler(
         Path(email): Path<String>,
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Json(body): Json<ResetPassword>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         println!("{}", email);
 
@@ -632,8 +673,11 @@ pub mod router {
                             };
 
                             if is_valid == false {
-                                let connection2 =
-                                    shared_state.pool.get().expect("Failed connection to POOL");
+                                let connection2 = shared_state
+                                    .connection_pool
+                                    .pool
+                                    .get()
+                                    .expect("Failed connection to POOL");
                                 let result = UserTable::new(connection2).reset_user_password(
                                     ResetUserPassword {
                                         user_id: user.id,
@@ -769,53 +813,16 @@ pub mod router {
     // юзер перехоит по ссылке из почты, открывается страница с восстановлением пароля // password, confirm_password
     // меняем пароль в бд
 
-    #[utoipa::path(
-        get,
-        path = "/get_avatarv2",
-        // params(
-        //     ("id" = uuid::Uuid, Path, description="remove_id")
-        // )
-    )]
+    use anyhow::Result;
+    use thiserror::Error;
 
-    pub async fn get_user_avatar_v2(// State(shared_state): State<ConnectionPool>,
-    ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let mut headers = HeaderMap::new();
-        let header_string = format!("Api-Key {}", ENV::new().ya_cloud_token);
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&header_string).unwrap(),
-        );
+    #[derive(Error, Debug)]
+    pub enum AxumError {
+        #[error("Code error: {0}")]
+        CodeError(#[from] anyhow::Error),
 
-        // let resp = reqwest::get("https://storage.api.cloud.yandex.net/storage/v1/buckets/useravatars123")
-        // .await;
-
-        let resp = reqwest::Client::new()
-            // .get("https://storage.api.cloud.yandex.net/storage/v1/buckets/useravatars123")
-            .get("https://storage.yandexcloud.net/useravatars123/1.jpg")
-            .headers(headers)
-            .send()
-            .await;
-
-        // let resp = reqwest::get("https://httpbin.org/ip")
-        // .await;
-
-        match resp {
-            Ok(rs) => {
-                println!("{}", rs.status());
-                let txt = rs.text().await.unwrap();
-
-                // println!("body = {txt:?}");
-
-                Ok((
-                    StatusCode::OK,
-                    Json(json!({"detail": "werify password is incompatible"})),
-                ))
-            }
-            Err(_) => Err((
-                StatusCode::UNPROCESSABLE_ENTITY,
-                Json(json!({"detail": "werify password is incompatible"})),
-            )),
-        }
+        #[error("Service error: {0:?}")]
+        ServiceErr((StatusCode, Json<Value>)),
     }
 
     #[utoipa::path(
@@ -827,10 +834,14 @@ pub mod router {
     )]
 
     pub async fn remove_accaunt_handler(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Path(id): Path<uuid::Uuid>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
         let errors = error_boundary::SimpleError::new();
 
         match UserTable::new(connection).remove_user_by_id(id) {

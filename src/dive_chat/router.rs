@@ -1,10 +1,10 @@
 use std::sync::Arc;
+use crate::SharedState;
 
 use crate::users::auth::auth;
 use crate::users::model::USER;
 
 use crate::dive_chat::service;
-use crate::SharedState;
 use axum::Json;
 use axum::{response::IntoResponse, Router};
 use utoipa::ToSchema;

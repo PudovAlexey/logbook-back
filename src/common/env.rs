@@ -2,6 +2,7 @@ use std::net::Ipv4Addr;
 
 use crate::common::load_env_variable::load_env_variable;
 
+#[derive(Clone)]
 pub struct ENV {
     pub app_protocol: String,
     pub app_host: Ipv4Addr,
