@@ -92,9 +92,7 @@ async fn main() {
         .route("/hello", axum::routing::get(handler))
         .with_state(io)
         .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
-        .merge(logbook_routes::router::logbook_routes(
-            shared_connection_pool.clone(),
-        ))
+        .merge(logbook_routes::router::logbook_routes(shared_state.clone()))
         .merge(users::router::router::user_routes(shared_state.clone()))
         .merge(dive_chat::router::chat_sites_routes(shared_state.clone()))
         .merge(dive_sites::router::dive_sites_routes(shared_state.clone()))

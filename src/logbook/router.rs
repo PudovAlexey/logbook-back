@@ -1,7 +1,8 @@
 pub mod router {
-
     use crate::users::auth::auth;
     use crate::users::model::USER;
+    use crate::SharedState;
+    use std::sync::Arc;
 
     use crate::images::service::service::ImagesTable;
     use axum::Json;
@@ -18,16 +19,14 @@ pub mod router {
         CREATELogInfoParams, GetLogbookByIdParams, GetLogbookListParams,
         LogInfoTable as log_info_table, SearchLogsParams,
     };
-
-    use crate::common::db::ConnectionPool;
     use http::StatusCode;
 
-    pub fn logbook_routes(shared_connection_pool: ConnectionPool) -> Router {
+    pub fn logbook_routes(shared_state: Arc<SharedState>) -> Router {
         Router::new()
             .route(
                 "/log_info",
                 axum::routing::get(get_logbook_list).route_layer(middleware::from_fn_with_state(
-                    shared_connection_pool.clone(),
+                    shared_state.connection_pool.clone(),
                     auth,
                 )),
             )
@@ -36,10 +35,10 @@ pub mod router {
             .route(
                 "/log_info/",
                 axum::routing::post(create_loginfo_handler).route_layer(
-                    middleware::from_fn_with_state(shared_connection_pool.clone(), auth),
+                    middleware::from_fn_with_state(shared_state.connection_pool.clone(), auth),
                 ),
             )
-            .with_state(shared_connection_pool)
+            .with_state(shared_state)
     }
 
     #[utoipa::path(
@@ -58,10 +57,14 @@ pub mod router {
     )]
     pub async fn get_logbook_list(
         Extension(user): Extension<USER>,
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Query(params): Query<SearchLogsParams>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(connection).get_logbook_list(GetLogbookListParams {
             search_params: params,
@@ -79,8 +82,11 @@ pub mod router {
                              image_id: other_image_id,
                              ..
                          }| {
-                            let connection =
-                                shared_state.pool.get().expect("Failed connection to POOL");
+                            let connection = shared_state
+                                .connection_pool
+                                .pool
+                                .get()
+                                .expect("Failed connection to POOL");
                             // let &LogInfo {image_id, ..} = x;
                             // let &RequiredSelectListItems {
                             //     id,
@@ -169,10 +175,14 @@ pub mod router {
         )
     )]
     pub async fn get_logbook_by_id(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Path(id): Path<i32>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(connection).get_loginfo_by_id(GetLogbookByIdParams { id: id }) {
             Ok(log_item) => Ok((StatusCode::OK, Json(json!({"data": log_item})))),
@@ -195,11 +205,15 @@ pub mod router {
         // )
     )]
     pub async fn update_loginfo_handler(
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Path(id): Path<i32>,
         Json(body): Json<UpdateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .connection_pool
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(connection).update_loginfo_by_id(id, body) {
             Ok(updated_id) => Ok((StatusCode::OK, Json(json!(updated_id)))),
@@ -223,10 +237,10 @@ pub mod router {
     )]
     pub async fn create_loginfo_handler(
         Extension(user): Extension<USER>,
-        State(shared_state): State<ConnectionPool>,
+        State(shared_state): State<Arc<SharedState>>,
         Json(body): Json<CreateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let conntection = shared_state.pool.get().expect("Failed connection to POOL");
+        let conntection = shared_state.connection_pool.pool.get().expect("Failed connection to POOL");
 
         match log_info_table::new(conntection).create_loginfo(CREATELogInfoParams {
             body,
