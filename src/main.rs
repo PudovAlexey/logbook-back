@@ -97,9 +97,7 @@ async fn main() {
         ))
         .merge(users::router::router::user_routes(shared_state.clone()))
         .merge(dive_chat::router::chat_sites_routes(shared_state.clone()))
-        .merge(dive_sites::router::dive_sites_routes(
-            shared_connection_pool.clone(),
-        ))
+        .merge(dive_sites::router::dive_sites_routes(shared_state.clone()))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .layer(

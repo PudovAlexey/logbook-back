@@ -1,6 +1,6 @@
+use crate::SharedState;
 use axum::{response::IntoResponse, Router};
-
-use crate::common::db::ConnectionPool;
+use std::sync::Arc;
 
 use axum::{
     extract::{Query, State},
@@ -15,13 +15,13 @@ use super::service;
 
 const ENDPOINT: &str = "/dive_sites/";
 
-pub fn dive_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
+pub fn dive_sites_routes(shared_state: Arc<SharedState>) -> Router {
     Router::new()
         .route(
             &format!("{}list", ENDPOINT),
             axum::routing::get(get_dive_site_list),
         )
-        .with_state(shared_connection_pool)
+        .with_state(shared_state)
 }
 
 #[utoipa::path(
@@ -37,10 +37,14 @@ pub fn dive_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
     )
 )]
 pub async fn get_dive_site_list(
-    State(shared_state): State<ConnectionPool>,
+    State(shared_state): State<Arc<SharedState>>,
     Query(params): Query<service::SearchDiveSiteParams>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    let connection = shared_state.pool.get().expect("Failed connection to POOL");
+    let connection = shared_state
+        .connection_pool
+        .pool
+        .get()
+        .expect("Failed connection to POOL");
 
     let res = service::get_dive_site_list(connection, params);
 
