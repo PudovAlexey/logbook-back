@@ -1,6 +1,17 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    achievement (id) {
+        id -> Int4,
+        #[max_length = 50]
+        name -> Varchar,
+        #[max_length = 300]
+        description -> Varchar,
+        image_id -> Int4,
+    }
+}
+
+diesel::table! {
     avatar (id) {
         id -> Int4,
         image_id -> Int4,
@@ -91,6 +102,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    task (id) {
+        id -> Int4,
+        #[max_length = 50]
+        name -> Varchar,
+        #[max_length = 300]
+        description -> Varchar,
+        image_id -> Int4,
+    }
+}
+
+diesel::table! {
+    user_achievement (id) {
+        id -> Int4,
+        achievement_id -> Int4,
+        user_id -> Uuid,
+        task_id -> Int4,
+    }
+}
+
+diesel::table! {
     users (id) {
         #[max_length = 100]
         email -> Varchar,
@@ -113,6 +144,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(achievement -> image (image_id));
 diesel::joinable!(avatar -> image (image_id));
 diesel::joinable!(chat_user -> chat (chat_id));
 diesel::joinable!(chat_user -> users (user_id));
@@ -122,7 +154,22 @@ diesel::joinable!(loginfo -> dive_site (site_id));
 diesel::joinable!(loginfo -> users (user_id));
 diesel::joinable!(message -> chat (chat_id));
 diesel::joinable!(message -> users (user_id));
+diesel::joinable!(task -> image (image_id));
+diesel::joinable!(user_achievement -> achievement (achievement_id));
+diesel::joinable!(user_achievement -> task (task_id));
+diesel::joinable!(user_achievement -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    avatar, chat, chat_user, dive_site, image, log_image, loginfo, message, users,
+    achievement,
+    avatar,
+    chat,
+    chat_user,
+    dive_site,
+    image,
+    log_image,
+    loginfo,
+    message,
+    task,
+    user_achievement,
+    users,
 );

@@ -81,7 +81,7 @@ pub mod router {
             .route("/set_avatar/:id", axum::routing::post(set_user_avatar))
             .route(
                 "/get_avatar/:id",
-                axum::routing::post(get_user_avatar).route_layer(auth_middleware.clone()),
+                axum::routing::get(get_user_avatar).route_layer(auth_middleware.clone()),
             )
             .route(
                 "/remove_account/:id",
@@ -462,8 +462,6 @@ pub mod router {
             .await;
 
         if response.is_ok() {
-            println!("{:?}", response);
-
             let avatar_query = ImagesTable::new(connection).set_avatar(CreateAvatarQuery {
                 user_id: id,
                 image_data: CreateImageQuery {
@@ -532,12 +530,14 @@ pub mod router {
             .expect("Failed connection to POOL");
 
         match ImagesTable::new(connection).get_user_avatar_data(id) {
-            Ok(data) => Ok((
-                StatusCode::OK,
-                Json(
-                    json!({"data": format!("{}{}:{}/{}", shared_state.env.app_protocol, shared_state.env.app_host, shared_state.env.app_port, data) }),
-                ),
-            )),
+            Ok(data) => {
+                Ok((
+                    StatusCode::OK,
+                    Json(
+                        json!({"data": data }),
+                    ),
+                ))
+            },
             Err(error) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"err": error.to_string()})),
@@ -651,7 +651,6 @@ pub mod router {
             .get()
             .expect("Failed connection to POOL");
 
-        println!("{}", email);
 
         match UserTable::new(connection).get_user_by_email(email.clone()) {
             Ok(user) => {
