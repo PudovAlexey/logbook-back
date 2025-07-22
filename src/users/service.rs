@@ -60,6 +60,8 @@ pub mod service {
                 .optional()
                 .expect("error to loading Logbook");
 
+            println!("existing_user {:?}", existing_user);
+
             if existing_user.is_some() {
                 Err(diesel::result::Error::NotFound)
             } else {
@@ -149,7 +151,7 @@ pub mod service {
 
         pub fn reset_user_password(&mut self, params: ResetUserPassword) -> Result<uuid::Uuid, Error> {
             let existing_user = self.get_user_by_id(params.user_id);
-            let salt = SaltString::generate(&mut OsRng);
+     let salt = SaltString::generate(OsRng);
 
             let hashed_password = Argon2::default()
             .hash_password(params.password.as_bytes(), &salt)

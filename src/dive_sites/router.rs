@@ -1,6 +1,6 @@
 use axum::{response::IntoResponse, Router};
 
-use crate::common::db::ConnectionPool;
+use crate::{logbook::model::LogInfo, SharedStateType};
 
 use axum::{
     Json,
@@ -17,10 +17,10 @@ use super::service;
 
 const ENDPOINT: &str = "/dive_sites/";
 
-pub fn dive_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
+pub fn dive_sites_routes(shared_state: SharedStateType) -> Router {
     Router::new()
     .route(&format!("{}list", ENDPOINT), axum::routing::get(get_dive_site_list))
-    .with_state(shared_connection_pool)
+    .with_state(shared_state)
 }
 
 #[utoipa::path(
@@ -32,14 +32,14 @@ pub fn dive_sites_routes(shared_connection_pool: ConnectionPool) -> Router {
         ("search_query" = Option<String>, Query, description = "search_query")
     ),
     responses(
-        (status = 200, description = "List all todos successfully", body = [model::LogInfo])
+        (status = 200, description = "List all todos successfully", body = [LogInfo])
     )
 )]
 pub async fn get_dive_site_list(
-    State(shared_state): State<ConnectionPool>,
+    State(shared_state): State<SharedStateType>,
     Query(params): Query<service::SearchDiveSiteParams>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-    let connection = shared_state.pool.get().expect("Failed connection to POOL");
+    let connection = shared_state.db_pool.pool.get().expect("Failed connection to POOL");
 
    let res = service::get_dive_site_list(connection, params);
 

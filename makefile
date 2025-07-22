@@ -13,6 +13,9 @@ debug:
 watch:
 	@cargo watch -x run
 
+db-setup:
+	@diesel setup
+
 make-migration:
 	@diesel migration generate $(MIGRATION_NAME)
 

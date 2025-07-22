@@ -1,3 +1,0 @@
-ALTER TABLE your_table
-ALTER COLUMN latitude TYPE FLOAT USING latitude::FLOAT,
-ALTER COLUMN longitude TYPE FLOAT USING longitude::FLOAT;

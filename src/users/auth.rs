@@ -1,9 +1,9 @@
-use crate::common::{
+use crate::{common::{
     env::ENV,
     error_boundary::
         error_boundary::{self, BoundaryHandlers}
     ,
-};
+}, SharedStateType};
 use crate::users::model::TokenClaims;
 use crate::users::service::service::UserTable;
 use axum::{
@@ -24,11 +24,9 @@ pub struct ErrorResponse {
     pub message: String,
 }
 
-use crate::common::db::ConnectionPool;
-
 pub async fn auth(
     cookie_jar: CookieJar,
-    State(shared_state): State<ConnectionPool>,
+    State(shared_state): State<SharedStateType>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<Value>)> {
@@ -79,7 +77,7 @@ pub async fn auth(
                 match user_uuid.is_ok() {
                     true => {
                         let connection =
-                            shared_state.pool.get().expect("Failed connection to POOL");
+                            shared_state.db_pool.clone().pool.get().expect("Failed connection to POOL");
 
                         let user = UserTable::new(connection)
                             .get_user_by_id(user_uuid.unwrap())

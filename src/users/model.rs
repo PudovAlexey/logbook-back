@@ -65,6 +65,7 @@ pub struct CreateUserHandlerQUERY {
     pub name: String,
     pub surname: Option<String>,
     pub patronymic: Option<String>,
+     #[schema(example = "1995-05-15T14:30:00")]
     pub date_of_birth: NaiveDateTime,
     pub password: String,
     pub confirm_password: String

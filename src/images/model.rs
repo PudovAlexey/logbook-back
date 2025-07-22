@@ -73,7 +73,7 @@ pub struct LogImage {
   pub logbook_id: i32,
 }
 
-#[derive(Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+#[derive(Queryable, Selectable, Identifiable, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, ToSchema)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(LogImage, foreign_key = image_id))]
 #[diesel(table_name = crate::schema::image)]
