@@ -4,11 +4,12 @@ pub mod api_doc {
         Modify,
         openapi::security::{SecurityScheme, ApiKey, ApiKeyValue}
     };
-
+    
     use crate::logbook;
     use crate::users;
     use crate::images;
     use crate::dive_sites;
+    use crate::router;
 
     #[derive(OpenApi)]
     #[openapi(

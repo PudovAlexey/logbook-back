@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use diesel::result::Error as DieselError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -18,6 +19,15 @@ pub enum AppError {
 
     #[error("ValidationError")]
     ValidationError,
+
+    #[error("User Allready Exists")]
+    UserAllreadyExists,
+
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] DieselError), // SQLx errors
+
+    #[error("Internal Server Error")]
+    InternalServerError
 }
 
 #[derive(Serialize, Deserialize)]
@@ -31,6 +41,11 @@ impl AppError {
         match self {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::ValidationError => StatusCode::BAD_REQUEST,
+            AppError::UserAllreadyExists => StatusCode::FORBIDDEN,
+            AppError::DatabaseError(_) | AppError::DatabaseError(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            },
+            AppError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
@@ -75,6 +90,39 @@ impl IntoResponse for AppError {
             .header("Content-Type", "application/json")
             .body(Body::from(serde_json::to_string(&error_response).unwrap()))
             .unwrap()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SuccessResponse<T> {
+    data: T
+}
+
+impl<T> SuccessResponse<T> {
+    pub fn status_code(&self) -> StatusCode {
+        StatusCode::OK
+    }
+}
+
+impl <T: Serialize> IntoResponse for SuccessResponse<T> {
+    fn into_response(self) -> Response {
+             let status_code = self.status_code();
+
+             let success_response = SuccessResponse {
+                data: self.data,
+             };
+
+                Response::builder()
+            .status(status_code)
+            .header("Content-Type", "application/json")
+            .body(Body::from(serde_json::to_string(&success_response).unwrap()))
+            .unwrap()
+    }
+}
+
+pub fn into_response<T>(data: T) -> SuccessResponse<T> {
+    SuccessResponse {
+        data,
     }
 }
 

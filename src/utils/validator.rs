@@ -1,5 +1,4 @@
 use crate::error::{AppError, AppResult};
-pub mod confirm_password;
 pub mod validate_email;
 pub mod validate_password;
 
