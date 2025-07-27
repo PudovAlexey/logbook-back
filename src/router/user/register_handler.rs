@@ -8,7 +8,6 @@ use crate::{
     error::AppResult, router::user::register_handler_dto::CreateUserHandlerBody,
     utils::validator::Validator, SharedStateType,
 };
-use serde_json::{json, Value};
 
 #[utoipa::path(
         post,

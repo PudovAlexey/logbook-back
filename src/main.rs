@@ -17,24 +17,15 @@ use crate::{
     router::create_router,
 };
 
-use opentelemetry::metrics::Meter;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
-
-use utoipa_redoc::{Redoc, Servable};
-use utoipa_swagger_ui::SwaggerUi;
-
 use tokio::net::TcpListener;
 
 use std::{net::SocketAddr, sync::Arc};
 
-use axum::Router;
 
 use crate::common::db;
 
-use logbook::router::{self as logbook_routes};
 
 use tower_http::services::fs::ServeDir;
-
 pub struct SharedState {
     pub db_pool: Arc<ConnectionPool>,
     pub redis: Arc<Redis>,

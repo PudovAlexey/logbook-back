@@ -15,12 +15,14 @@ pub struct ENV {
    pub smtp_transport: String,
    pub redis_port: String,
    pub app_port: u16,
+   pub metrics_port: u16,
 }
 
 impl ENV {
     pub fn new() -> Self {
         Self {
             app_port: load_env_variable("APP_PORT").parse().unwrap(),
+            metrics_port: load_env_variable("METRICS_PORT").parse().unwrap(),
             app_host: load_env_variable("APP_HOST").parse().unwrap(),
             database_url: load_env_variable("DATABASE_URL"),
             jwt_refresh_secret: load_env_variable("JWT_REFRESH_SECRET"),

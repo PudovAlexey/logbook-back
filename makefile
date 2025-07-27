@@ -1,4 +1,7 @@
 
+# APP_PATH := /home/alexey/projects/logbook/logbook-back/target/release/logbook-app-back
+APP_PATH := /usr/src/app/target/release/logbook-app-back
+
 .PHONY: make-migration
 
 run:
@@ -24,3 +27,16 @@ migration-up:
 
 migration-down:
 	@diesel migration redo
+
+app-build:
+	@cargo build
+
+db-cli-intall:
+	@cargo install diesel_cli
+
+
+run-app:
+	@echo "Запуск приложения..."
+	@$(APP_PATH)
+
+initialize-app: db-setup migration-up run-app

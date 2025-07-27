@@ -4,36 +4,36 @@ services:
     image: redis
     ports:
       - "6379"
+  
   db:
     image: postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-logbook}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "6543:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - ./pg_dump:/pg_dumb
+      - ./pg_dump:/pg_dump
+  
   logbook:
     build: .
-    # image: aleksej177/logbook:latest
     image: 37.77.104.138:5001/logbook:latest
     volumes:
-     - .:/logbook-app-back
+      - .:/logbook-app-back
     ports:
       - "8080:8080"
+      - "9464:9464" 
     depends_on:
       - db
       - redis
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db/logbook
-      POSTGRES_DB: logbook
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db/${POSTGRES_DB:-logbook}
       APP_PROTOCOL: http://
       APP_HOST: 0.0.0.0
       APP_PORT: 8080
+      METRICS_PORT:  9464
       JWT_REFRESH_SECRET: my_ultra_secure_secret_refresh_secret
       JWT_ACCESS_SECRET: my_ultra_secure_access_secret
       JWT_ACCESS_EXPIRED_IN: 60
@@ -41,7 +41,38 @@ services:
       SMTP_USERNAME: dive-logbook@yandex.ru
       SMTP_PASSWORD: "lvknwlldeubagwbv"
       SMTP_TRANSPORT: smtp.yandex.ru
-      REDIS_PORT: redis://redis:6379/ # 
+      REDIS_PORT: redis://redis:6379/
     restart: unless-stopped
+    # Добавляем метки для Prometheus (если приложение поддерживает /metrics)
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=9464"
+      - "prometheus.path=/metrics"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - logbook
+  
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+
 volumes:
   pg_data:
+  grafana_data:

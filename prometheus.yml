@@ -1,5 +1,11 @@
+global:
+  scrape_interval: 15s
+
 scrape_configs:
-  - job_name: 'rust_app'
-    scrape_interval: 15s
+  - job_name: 'logbook'
     static_configs:
-      - targets: ['localhost:9464']  # Магический хост для доступа к локальной машине
+      - targets: ['logbook:9464']
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
