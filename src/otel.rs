@@ -2,8 +2,7 @@ use axum::{body::Body, response::Response, routing::get, Router};
 use http::{HeaderMap, HeaderValue};
 use opentelemetry::{
     global,
-    metrics::{Counter, Meter, MeterProvider as _},
-    KeyValue,
+    metrics::Counter,
 };
 use opentelemetry_prometheus::{self};
 use opentelemetry_sdk::metrics::SdkMeterProvider;
@@ -34,11 +33,9 @@ impl MetricsSubscriber {
             .build()
             .unwrap();
 
-
         let provider = SdkMeterProvider::builder().with_reader(exporter).build();
 
         global::set_meter_provider(provider);
-
 
         let meter = global::meter("my-app");
 
@@ -46,7 +43,6 @@ impl MetricsSubscriber {
             .u64_counter("http.requests.total")
             .with_description("Total HTTP requests")
             .build();
-
 
         Self {
             registry: Arc::new(registry),
@@ -82,12 +78,12 @@ impl MetricsSubscriber {
             }),
         );
 
-            let api_host = ENV::new().app_host;
-            let metrics_port = ENV::new().metrics_port;
+        let api_host = ENV::new().app_host;
+        let metrics_port = ENV::new().metrics_port;
 
-            let addr = SocketAddr::from((api_host, metrics_port));
+        let addr = SocketAddr::from((api_host, metrics_port));
 
-                println!("the metrics server listening on http://{:?}/metrics", addr);
+        println!("the metrics server listening on http://{:?}/metrics", addr);
 
         let listener = TcpListener::bind(addr).await.unwrap();
 

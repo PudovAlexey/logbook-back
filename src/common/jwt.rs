@@ -6,6 +6,7 @@ use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation}
 use serde::{Deserialize, Serialize};
 use time::Duration;
 use axum::http::{header};
+use utoipa::ToSchema;
 
 enum Token {
     Access,
@@ -22,7 +23,7 @@ impl Token {
 }
 
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct JWT {
    pub access_token: String,
    pub refresh_token: String,

@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use crate::{error::{into_response, SuccessResponse}, service::user::register::register_handler as register_handler_service};
+use crate::{
+    error::{into_response, SuccessResponse},
+    service::user::register::register_handler as register_handler_service,
+};
 use axum::{extract::State, Json};
 use opentelemetry::KeyValue;
 
 use crate::{
-    error::AppResult, router::user::register_handler_dto::CreateUserHandlerBody,
+    error::AppResult, router::user::register::register_handler_dto::CreateUserHandlerBody,
     utils::validator::Validator, SharedStateType,
 };
 
@@ -14,7 +17,7 @@ use crate::{
         tag = "user",
         path = "/api/register",
         request_body = CreateUserHandlerBody,
-            responses(
+        responses(
         (status = 200, description = "User successfully registered", body = uuid::Uuid, example = json!({
             "uuid": "1da514b3-5d1f-44c5-b3f9-cae96dbd8243",
         })),

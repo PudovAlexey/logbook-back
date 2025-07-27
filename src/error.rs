@@ -3,9 +3,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use redis::RedisError;
 use diesel::result::Error as DieselError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
@@ -27,7 +29,11 @@ pub enum AppError {
     DatabaseError(#[from] DieselError), // SQLx errors
 
     #[error("Internal Server Error")]
-    InternalServerError
+    InternalServerError,
+
+    #[error("Database error: {0}")]
+    RedisError(#[from] RedisError), // SQLx errors
+
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,6 +48,7 @@ impl AppError {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
             AppError::ValidationError(_) => StatusCode::BAD_REQUEST,
             AppError::UserAllreadyExists => StatusCode::FORBIDDEN,
+            AppError::RedisError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::DatabaseError(_) | AppError::DatabaseError(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             },
@@ -93,7 +100,7 @@ impl IntoResponse for AppError {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct SuccessResponse<T> {
     data: T
 }

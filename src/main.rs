@@ -21,28 +21,37 @@ use tokio::net::TcpListener;
 
 use std::{net::SocketAddr, sync::Arc};
 
-
 use crate::common::db;
 
-
-use tower_http::services::fs::ServeDir;
 pub struct SharedState {
     pub db_pool: Arc<ConnectionPool>,
     pub redis: Arc<Redis>,
     pub metrics: Arc<Metrics>,
+    pub env: Arc<ENV>,
 }
 
 pub type SharedStateType = Arc<SharedState>;
 
 #[tokio::main]
 async fn main() {
-    // new_telemetry();
-    let db_url = ENV::new().database_url;
-    let api_host = ENV::new().app_host;
-    let app_port: u16 = ENV::new().app_port;
+    let env = Arc::new(ENV::new());
 
-    let shared_connection_pool = Arc::new(db::create_shared_connection_pool(db_url, 10));
-    let address = SocketAddr::from((api_host, app_port));
+    let main_env = Arc::clone(&env);
+
+    let ENV {
+        database_url,
+        app_host,
+        app_port,
+        ..
+    } = &*main_env;
+
+    let state_env = Arc::clone(&env);
+
+    let shared_connection_pool = Arc::new(db::create_shared_connection_pool(
+        database_url.to_owned(),
+        10,
+    ));
+    let address = SocketAddr::from((app_host.to_owned(), app_port.to_owned()));
     let listener = TcpListener::bind(&address).await;
     let redis = Arc::new(Redis::new());
     let mut metrics_subscriber = MetricsSubscriber::new();
@@ -51,28 +60,23 @@ async fn main() {
         db_pool: shared_connection_pool.clone(),
         redis: redis.clone(),
         metrics: metrics_subscriber.metrics.clone(),
+        env: state_env.clone(),
     });
 
     let app = create_router(shared_state.clone());
 
-    println!(
-        "the server listening on {}{}:{}",
-        ENV::new().app_protocol,
-        ENV::new().app_host,
-        ENV::new().app_port
-    );
+    println!("the servere running on http://{:?}", address);
 
     tokio::spawn(async move {
         metrics_subscriber.run_metrics_server().await;
-        // new_telemetry().await;
     });
-    // println!("the server is down");
-    let _res = axum::serve(listener.unwrap(), app.into_make_service())
-        .await
-        .unwrap();
 
-    common::runtime_scheduler::runtime_scheduler(
-        shared_connection_pool.clone().pool.get().unwrap(),
-    )
-    .await;
+    tokio::spawn(async move {
+        common::runtime_scheduler::runtime_scheduler(
+            shared_connection_pool.clone().pool.get().unwrap(),
+        ).await
+    });
+
+    let _res = axum::serve(listener.unwrap(), app.into_make_service())
+        .await;
 }

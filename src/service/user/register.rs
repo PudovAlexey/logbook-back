@@ -5,14 +5,11 @@ use chrono::Utc;
 use diesel::prelude::*;
 
 use diesel::ExpressionMethods;
-use rand::Rng;
 
 use crate::error::AppError;
+use crate::router::user::register::register_handler_dto::CreateUserHandlerBody;
 use crate::schema::users;
-use crate::{
-    error::AppResult, router::user::register_handler_dto::CreateUserHandlerBody,
-    users::model::USER, SharedStateType,
-};
+use crate::{error::AppResult, users::model::USER, SharedStateType};
 use rand_core::OsRng;
 
 pub fn register_handler(
@@ -28,7 +25,6 @@ pub fn register_handler(
         date_of_birth,
         ..
     } = params;
-
 
     let db_connection = Arc::clone(&shared_state.db_pool);
 

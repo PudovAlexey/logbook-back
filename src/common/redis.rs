@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::common::env;
 use redis::{Commands, Connection, RedisError, ToRedisArgs};
 
@@ -7,8 +9,9 @@ pub struct RedisClientStatus {
     pub message: String,
 }
 
+#[derive(Clone)]
 pub struct Redis {
-    pub connection: Connection,
+    pub connection: Arc<Mutex<Connection>>,
 }
 
 pub struct SetItem<V> {
@@ -27,7 +30,9 @@ impl Redis {
         //   let mut con = self.new().unwrap();
         let value = v.value;
 
-        let res: Result<(), RedisError> = self.connection.set(v.key, value);
+        let mut connection = self.connection.lock().unwrap();
+
+        let res: Result<(), RedisError> = connection.set(v.key, value);
 
         if res.is_ok() {
             RedisClientStatus {
@@ -43,10 +48,11 @@ impl Redis {
     }
 
     pub fn set_expire_item<V: ToRedisArgs>(&mut self, v: SetExpireItem<V>) -> RedisClientStatus {
+        let mut connection = self.connection.lock().unwrap();
 
-        let res: Result<(), RedisError> = self.connection.set(&v.key, v.value);
+        let res: Result<(), RedisError> = connection.set(&v.key, v.value);
 
-        let req: Result<(), RedisError> = self.connection.expire(v.key, v.expires);
+        let req: Result<(), RedisError> = connection.expire(v.key, v.expires);
 
         if res.is_ok() && req.is_ok() {
             RedisClientStatus {
@@ -61,21 +67,26 @@ impl Redis {
         }
     }
 
-    pub fn get_item(mut self, key: String) -> Result<String, RedisError> {
-        self.connection.get(key)
+    pub fn get_item(&self, key: String) -> Result<String, RedisError> {
+        let mut connection = self.connection.lock().unwrap();
+
+        connection.get(key)
     }
 
     pub fn remove_item(mut self, key: String) -> Result<String, RedisError> {
-        self.connection.del(key)
+        let mut connection = self.connection.lock().unwrap();
+        connection.del(key)
     }
 
-    pub fn new() -> Redis {
+    pub fn new() -> Self {
         let client = redis::Client::open(env::ENV::new().redis_port)
             .map_err(|e| e)
             .unwrap();
 
         let connection = client.get_connection().unwrap();
 
-        Redis { connection }
+        Self {
+            connection: Arc::new(Mutex::new(connection)),
+        }
     }
 }
