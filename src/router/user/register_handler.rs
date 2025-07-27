@@ -11,9 +11,19 @@ use crate::{
 use serde_json::{json, Value};
 
 #[utoipa::path(
-        get,
-        path = "api/register",
-        request_body = String
+        post,
+        tag = "user",
+        path = "/api/register",
+        request_body = CreateUserHandlerBody,
+            responses(
+        (status = 200, description = "User successfully registered", body = uuid::Uuid, example = json!({
+            "uuid": "1da514b3-5d1f-44c5-b3f9-cae96dbd8243",
+        })),
+        (status = 201, description = "User successfully registered"),
+        (status = 400, description = "Invalid email format"),
+        (status = 409, description = "Email already registered"),
+        (status = 500, description = "Internal server error")
+    )
     )]
 pub async fn register_handler(
     State(shared_state): State<SharedStateType>,
@@ -43,7 +53,7 @@ pub async fn register_handler(
 
     Validator::validate_email(&email)?;
 
-    Validator::compare_password(&email, &confirm_password)?;
+    Validator::compare_password(&password, &confirm_password)?;
 
     let clone_shared_state = Arc::clone(&shared_state);
 

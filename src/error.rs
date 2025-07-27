@@ -17,8 +17,8 @@ pub enum AppError {
     #[error("Unauthorized")]
     Unauthorized,
 
-    #[error("ValidationError")]
-    ValidationError,
+    #[error("Validation error: {0}")]
+    ValidationError(String),  // Улучшенное сообщение об ошибке
 
     #[error("User Allready Exists")]
     UserAllreadyExists,
@@ -40,7 +40,7 @@ impl AppError {
     pub fn status_code(&self) -> StatusCode {
         match self {
             AppError::Unauthorized => StatusCode::UNAUTHORIZED,
-            AppError::ValidationError => StatusCode::BAD_REQUEST,
+            AppError::ValidationError(_) => StatusCode::BAD_REQUEST,
             AppError::UserAllreadyExists => StatusCode::FORBIDDEN,
             AppError::DatabaseError(_) | AppError::DatabaseError(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR

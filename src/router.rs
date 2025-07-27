@@ -1,20 +1,38 @@
 pub mod user;
-use crate::users as old_users;
-use crate::logbook;
-use crate::dive_sites;
 use crate::api_doc;
+use crate::dive_sites;
+use crate::logbook;
+use crate::router::user::UserApiDoc;
+use crate::users as old_users;
 use axum::Router;
 use tower_http::services::fs::ServeDir;
-use utoipa_swagger_ui::SwaggerUi;
-use utoipa_redoc::{Redoc, Servable};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use api_doc::api_doc::ApiDoc;
-use utoipa::OpenApi;
-use logbook::router::{self as logbook_routes};
+use utoipa::{
+    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    Modify, OpenApi,
+};
+use utoipa_redoc::{Redoc, Servable};
+use utoipa_swagger_ui::SwaggerUi;
+// use api_doc::api_doc::ApiDoc;
 use crate::SharedStateType;
+use logbook::router::{self as logbook_routes};
 
+#[derive(OpenApi)]
+#[openapi(
+    paths(),
+    components(),
+    // modifiers(&SecurityAddon),
+    info(title = "Ordinotes API", description = "API description"),
+    tags(
+        (name = "user", description = "Users endpoints"),
+    )
+)]
+pub struct ApiDoc;
 
 pub fn create_router(shared_state: SharedStateType) -> Router {
+    let mut openapi = ApiDoc::openapi();
+    openapi.merge(UserApiDoc::openapi());
+
     Router::new()
         .nest_service(
             "/assets",
@@ -22,8 +40,8 @@ pub fn create_router(shared_state: SharedStateType) -> Router {
                 ServeDir::new("assets").append_index_html_on_directories(false),
             ),
         )
-        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .merge(Redoc::with_url("/redoc", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", openapi.clone()))
+        // .merge()
         .merge(logbook_routes::router::logbook_routes(shared_state.clone()))
         .merge(old_users::router::router::user_routes(shared_state.clone()))
         .merge(dive_sites::router::dive_sites_routes(shared_state.clone()))

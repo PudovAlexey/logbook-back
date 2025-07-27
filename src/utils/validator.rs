@@ -11,7 +11,7 @@ impl Validator {
                 return Ok(m);
             }
             Err(error) => {
-                return Err(AppError::ValidationError);
+                return Err(AppError::ValidationError(error));
             }
         }
     }
@@ -22,15 +22,15 @@ impl Validator {
                 return Ok(m);
             }
             Err(error) => {
-                return Err(AppError::ValidationError);
+                return Err(AppError::ValidationError(error));
             }
         }
     }
-    pub fn compare_password(email: &str, compare_email: &str) -> AppResult<String> {
-        if email == compare_email {
-            return Ok(email.to_string());
+    pub fn compare_password(password: &str, compare_password: &str) -> AppResult<String> {
+        if password == compare_password {
+            return Ok(password.to_string());
         } else {
-            return Err(AppError::ValidationError);
+            return Err(AppError::ValidationError(String::from("Emails do not match")));
         }
     }
 }
