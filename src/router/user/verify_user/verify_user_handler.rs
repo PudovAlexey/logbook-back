@@ -10,6 +10,16 @@ use crate::{
     SharedStateType,
 };
 
+    #[utoipa::path(
+        post,
+        tag="user",
+        path = "api/user/verify/{user_id}",
+        request_body = VerifyUserCodeDto,
+        params(
+            ("user_id" = uuid::Uuid, Path, description="Element id")
+        ),
+    )]
+
 pub async fn verify_user_handler(
     State(shared_state): State<SharedStateType>,
     Path(user_id): Path<uuid::Uuid>,

@@ -1,17 +1,13 @@
 pub mod router {
 
-    
-    use std::sync::Arc;
-
     use crate::users::auth::auth;
     use crate::users::model::USER;
 
     use crate::images::service::service::ImagesTable;
-    use crate::{SharedState, SharedStateType};
+    use crate::SharedStateType;
     use axum::Json;
     use axum::{extract::State, response::IntoResponse, Router};
-    
-    
+
     use serde_json::json;
     use serde_json::Value;
 
@@ -19,24 +15,28 @@ pub mod router {
     use axum::middleware;
 
     use crate::logbook::model::{
-        CreateLogInfo, LogInfo, LogList, RequiredSelectListItems, UpdateLogInfo
+        CreateLogInfo, LogInfo, LogList, RequiredSelectListItems, UpdateLogInfo,
     };
     use crate::logbook::service::service::{
-        CREATELogInfoParams, GetLogbookByIdParams, GetLogbookListParams, LogInfoTable as log_info_table, SearchLogsParams
+        CREATELogInfoParams, GetLogbookByIdParams, GetLogbookListParams,
+        LogInfoTable as log_info_table, SearchLogsParams,
     };
-
-    use crate::common::db::ConnectionPool;
     use http::StatusCode;
 
     pub fn logbook_routes(shared_state: SharedStateType) -> Router {
         Router::new()
             .route(
                 "/log_info",
-                axum::routing::get(get_logbook_list).route_layer(middleware::from_fn_with_state(shared_state.clone(), auth)),
+                axum::routing::get(get_logbook_list)
+                    .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth)),
             )
             .route("/log_info/{id}", axum::routing::get(get_logbook_by_id))
             .route("/log_info/{id}", axum::routing::put(update_loginfo_handler))
-            .route("/log_info/", axum::routing::post(create_loginfo_handler).route_layer(middleware::from_fn_with_state(shared_state.clone(), auth)))
+            .route(
+                "/log_info/",
+                axum::routing::post(create_loginfo_handler)
+                    .route_layer(middleware::from_fn_with_state(shared_state.clone(), auth)),
+            )
             .with_state(shared_state)
     }
 
@@ -59,7 +59,12 @@ pub mod router {
         State(shared_state): State<SharedStateType>,
         Query(params): Query<SearchLogsParams>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.db_pool.clone().pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .db_pool
+            .clone()
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(connection).get_logbook_list(GetLogbookListParams {
             search_params: params,
@@ -68,79 +73,87 @@ pub mod router {
             Ok(log_info) => {
                 let log_list: Vec<LogList> = log_info
                     .iter()
-                    .map(| RequiredSelectListItems {
-                        id,
-                        title,
-                        description,
-                        start_datetime,
-                        image_id: other_image_id,
-                        ..
-                    }| {
-                        let connection =
-                            shared_state.db_pool.clone().pool.get().expect("Failed connection to POOL");
-                        // let &LogInfo {image_id, ..} = x;
-                        // let &RequiredSelectListItems {
-                        //     id,
-                        //     title,
-                        //     description,
-                        //     start_datetime,
-                        //     image_id: other_image_id,
-                        //     ..
-                        // } = x;
+                    .map(
+                        |RequiredSelectListItems {
+                             id,
+                             title,
+                             description,
+                             start_datetime,
+                             image_id: other_image_id,
+                             ..
+                         }| {
+                            let connection = shared_state
+                                .db_pool
+                                .clone()
+                                .pool
+                                .get()
+                                .expect("Failed connection to POOL");
+                            // let &LogInfo {image_id, ..} = x;
+                            // let &RequiredSelectListItems {
+                            //     id,
+                            //     title,
+                            //     description,
+                            //     start_datetime,
+                            //     image_id: other_image_id,
+                            //     ..
+                            // } = x;
 
-                        let image = other_image_id;
+                            let image = other_image_id;
 
-                        if image.is_none() {
-                            LogList {
-                                id: id.to_owned(),
-                                title: title.to_owned(),
-                                description: description.to_owned(),
-                                start_datetime: start_datetime.to_owned(),
-                                image_id: None,
-                                image_data: None,
-                            }
-                        } else {
-                            match ImagesTable::new(connection).get_log_image_data(image.unwrap()) {
-                                Ok(data) => {
-                                    //    LogList {
-                                    //         ..x
-                                    //         image_data: data,
-                                    //     }
-                                    LogList {
-                                        id: id.to_owned(),
-                                        title: title.to_owned(),
-                                        description: description.to_owned(),
-                                        start_datetime: start_datetime.to_owned(),
-                                        image_id: None,
-                                        image_data: Some(data),
-                                    }
-                                }
-                                Err(_error) => LogList {
+                            if image.is_none() {
+                                LogList {
                                     id: id.to_owned(),
                                     title: title.to_owned(),
                                     description: description.to_owned(),
                                     start_datetime: start_datetime.to_owned(),
                                     image_id: None,
                                     image_data: None,
-                                },
+                                }
+                            } else {
+                                match ImagesTable::new(connection)
+                                    .get_log_image_data(image.unwrap())
+                                {
+                                    Ok(data) => {
+                                        //    LogList {
+                                        //         ..x
+                                        //         image_data: data,
+                                        //     }
+                                        LogList {
+                                            id: id.to_owned(),
+                                            title: title.to_owned(),
+                                            description: description.to_owned(),
+                                            start_datetime: start_datetime.to_owned(),
+                                            image_id: None,
+                                            image_data: Some(data),
+                                        }
+                                    }
+                                    Err(_error) => LogList {
+                                        id: id.to_owned(),
+                                        title: title.to_owned(),
+                                        description: description.to_owned(),
+                                        start_datetime: start_datetime.to_owned(),
+                                        image_id: None,
+                                        image_data: None,
+                                    },
+                                }
                             }
-                        }
 
-                        // if image.is_none() {
-                        //     return x;
-                        // } else {
-                        //     match ImagesTable::new(connection).get_log_image_data(x) {
-                        //         Ok(data) => {
-                        //             LogList {
-                        //                 ..x,
-                        //                 image_data: data
-                        //             },
-                        //             Err((_) => {
-                        //                 x
-                        //             })
-                        //     }
-                        // }
-                    })
+                            // if image.is_none() {
+                            //     return x;
+                            // } else {
+                            //     match ImagesTable::new(connection).get_log_image_data(x) {
+                            //         Ok(data) => {
+                            //             LogList {
+                            //                 ..x,
+                            //                 image_data: data
+                            //             },
+                            //             Err((_) => {
+                            //                 x
+                            //             })
+                            //     }
+                            // }
+                        },
+                    )
                     .collect();
 
                 Ok((StatusCode::OK, Json(json!({"data": log_list}))))
@@ -166,16 +179,19 @@ pub mod router {
         State(shared_state): State<SharedStateType>,
         Path(id): Path<i32>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.db_pool.clone().pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .db_pool
+            .clone()
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(connection).get_loginfo_by_id(GetLogbookByIdParams { id: id }) {
             Ok(log_item) => Ok((StatusCode::OK, Json(json!({"data": log_item})))),
-            Err(err) => {
-                Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": err.to_string()})),
-                ))
-            }
+            Err(err) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": err.to_string()})),
+            )),
         }
     }
 
@@ -195,7 +211,12 @@ pub mod router {
         Path(id): Path<i32>,
         Json(body): Json<UpdateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let connection = shared_state.db_pool.clone().pool.get().expect("Failed connection to POOL");
+        let connection = shared_state
+            .db_pool
+            .clone()
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(connection).update_loginfo_by_id(id, body) {
             Ok(updated_id) => Ok((StatusCode::OK, Json(json!(updated_id)))),
@@ -222,16 +243,24 @@ pub mod router {
         State(shared_state): State<SharedStateType>,
         Json(body): Json<CreateLogInfo>,
     ) -> Result<impl IntoResponse, (StatusCode, Json<Value>)> {
-        let conntection = shared_state.db_pool.clone().pool.get().expect("Failed connection to POOL");
+        let conntection = shared_state
+            .db_pool
+            .clone()
+            .pool
+            .get()
+            .expect("Failed connection to POOL");
 
         match log_info_table::new(conntection).create_loginfo(CREATELogInfoParams {
             body,
-            user_info: user
+            user_info: user,
         }) {
             Ok(user_id) => Ok((StatusCode::OK, Json(json!(user_id)))),
             Err(err) => {
                 println!("{}", err);
-                Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": err.to_string()}))))
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": err.to_string()})),
+                ))
             }
         }
     }

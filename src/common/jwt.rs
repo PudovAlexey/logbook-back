@@ -23,7 +23,7 @@ impl Token {
 }
 
 
-#[derive(Deserialize, Serialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Clone)]
 pub struct JWT {
    pub access_token: String,
    pub refresh_token: String,

@@ -74,9 +74,9 @@ async fn main() {
     tokio::spawn(async move {
         common::runtime_scheduler::runtime_scheduler(
             shared_connection_pool.clone().pool.get().unwrap(),
-        ).await
+        )
+        .await
     });
 
-    let _res = axum::serve(listener.unwrap(), app.into_make_service())
-        .await;
+    let _res = axum::serve(listener.unwrap(), app.into_make_service()).await;
 }
