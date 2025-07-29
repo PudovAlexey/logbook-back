@@ -26,7 +26,7 @@ pub struct SetExpireItem<V> {
 }
 
 impl Redis {
-    pub fn set_item<V: ToRedisArgs>(mut self, v: SetItem<V>) -> RedisClientStatus {
+    pub fn set_item<V: ToRedisArgs>(&mut self, v: SetItem<V>) -> RedisClientStatus {
         //   let mut con = self.new().unwrap();
         let value = v.value;
 
@@ -47,7 +47,7 @@ impl Redis {
         }
     }
 
-    pub fn set_expire_item<V: ToRedisArgs>(&mut self, v: SetExpireItem<V>) -> RedisClientStatus {
+    pub fn set_expire_item<V: ToRedisArgs>(&self, v: SetExpireItem<V>) -> RedisClientStatus {
         let mut connection = self.connection.lock().unwrap();
 
         let res: Result<(), RedisError> = connection.set(&v.key, v.value);

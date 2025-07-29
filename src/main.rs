@@ -12,7 +12,7 @@ pub mod users;
 pub mod utils;
 
 use crate::{
-    common::{db::ConnectionPool, env::ENV, redis::Redis},
+    common::{db::ConnectionPool, env::ENV, mailer::Mailer2, redis::Redis},
     otel::{Metrics, MetricsSubscriber},
     router::create_router,
 };
@@ -28,6 +28,7 @@ pub struct SharedState {
     pub redis: Arc<Redis>,
     pub metrics: Arc<Metrics>,
     pub env: Arc<ENV>,
+    pub mailer: Arc<Mailer2>
 }
 
 pub type SharedStateType = Arc<SharedState>;
@@ -42,6 +43,9 @@ async fn main() {
         database_url,
         app_host,
         app_port,
+        smtp_username,
+        smtp_transport,
+        smtp_password,
         ..
     } = &*main_env;
 
@@ -54,6 +58,11 @@ async fn main() {
     let address = SocketAddr::from((app_host.to_owned(), app_port.to_owned()));
     let listener = TcpListener::bind(&address).await;
     let redis = Arc::new(Redis::new());
+    let mailer = Arc::new(Mailer2::new(
+        smtp_username,
+        smtp_password,
+        smtp_transport
+    ));
     let mut metrics_subscriber = MetricsSubscriber::new();
 
     let shared_state = Arc::new(SharedState {
@@ -61,6 +70,7 @@ async fn main() {
         redis: redis.clone(),
         metrics: metrics_subscriber.metrics.clone(),
         env: state_env.clone(),
+        mailer,
     });
 
     let app = create_router(shared_state.clone());

@@ -1,36 +1,50 @@
+use std::sync::Arc;
+
+use lettre::message::header::ContentType;
+extern crate rand;
+use rand::Rng;
+
 use crate::{
-    common::redis::SetExpireItem, error::AppError, service::user::get_user_by_id::get_user_by,
+    common::redis::SetExpireItem,
+    error::{AppError, AppResult},
+    service::user::get_user_by_id::get_user_by,
     SharedStateType,
 };
+
+const ALLOW_TRY_AGAIN_TIME: i32 = 60;
 
 pub async fn check_verification_code(
     shared_state: SharedStateType,
     email: String,
-) -> AppError<String> {
-    let can_try_again = shared_state
+) -> AppResult<i32> {
+    shared_state
         .redis
-        .get_item(String::from("verification_handler_expire"))
-        .unwrap();
+        .get_item(String::from("verification_handler_expire"))?;
 
-    let user = get_user_by(shared_state, email).unwrap();
+    let shared_state_clone = Arc::clone(&shared_state);
+
+    get_user_by(shared_state_clone, email.clone())?;
 
     let mut rng = rand::thread_rng();
     let random_number: u32 = rng.gen_range(100000..999999);
 
-    let expires_token = shared_state.redis.set_expire_item(SetExpireItem {
+    let redis = Arc::clone(&shared_state.redis);
+
+    let expires_token = redis.set_expire_item(SetExpireItem {
         key: format!("change_password={}", { &email }),
         value: random_number,
         expires: 3600,
     });
 
     if expires_token.status == "success" {
-        let mailer = Mailer::new(Mailer {
-            header: ContentType::TEXT_HTML,
-            to: email,
-            subject: String::from("enter these code to reset password"),
-            body: format!("your code is <span>{}</span>", { random_number }),
-        });
+        shared_state.mailer.send(
+            email,
+            ContentType::TEXT_HTML,
+            format!("your code is <span>{}</span>", { random_number }),
+        );
+
+        return Ok(ALLOW_TRY_AGAIN_TIME);
     }
 
-    todo!()
+    return Err(AppError::InternalServerError);
 }

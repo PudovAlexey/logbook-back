@@ -57,11 +57,11 @@ pub struct Mailer2 {
 
 impl Mailer2 {
     pub fn new(
-        smtp_username: String,
-        smtp_password: String,
-        smtp_transport: String,
+        smtp_username: &str,
+        smtp_password: &str,
+        smtp_transport: &str,
     ) -> Self {
-        let creds = Credentials::new(smtp_username.clone(), smtp_password);
+        let creds = Credentials::new(smtp_username.to_owned().clone(), smtp_password.to_owned());
 
         let mailer = SmtpTransport::relay(&ENV::new().smtp_transport)
             .unwrap()
@@ -70,7 +70,7 @@ impl Mailer2 {
 
         Self {
             mailer,
-            smtp_username,
+            smtp_username: String::from(smtp_username),
         }
     }
 
